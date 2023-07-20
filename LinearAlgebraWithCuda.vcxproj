@@ -79,10 +79,16 @@
   <ItemGroup>
     <CudaCompile Include="CMatrix.cuh" />
     <CudaCompile Include="CMatrix.cu" />
+    <CudaCompile Include="NeuralNetwork.cu" />
     <CudaCompile Include="kernel.cu" />
   </ItemGroup>
   <ItemGroup>
     <None Include="cpp.hint" />
+    <None Include="data\mnist_test.csv" />
+    <None Include="data\mnist_train.csv" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="NeuralNetwork.cuh" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

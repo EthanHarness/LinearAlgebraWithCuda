@@ -1,0 +1,33 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CudaCompile Include="CMatrix.cu" />
+    <CudaCompile Include="kernel.cu" />
+    <CudaCompile Include="NeuralNetwork.cu" />
+    <CudaCompile Include="CMatrix.cuh">
+      <Filter>Headers</Filter>
+    </CudaCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="cpp.hint" />
+    <None Include="data\mnist_train.csv">
+      <Filter>data</Filter>
+    </None>
+    <None Include="data\mnist_test.csv">
+      <Filter>data</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="data">
+      <UniqueIdentifier>{6e99221d-26d6-4e45-adce-b0eb143174f9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers">
+      <UniqueIdentifier>{d7f3bb26-6711-409e-8004-90420b0465ea}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="NeuralNetwork.cuh">
+      <Filter>Headers</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
