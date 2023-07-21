@@ -16,19 +16,53 @@ NeuralNetwork::NeuralNetwork(int layers[], int size) {
 
 
 	for (int i = 1; i < size; i++) {
-		CMatrix hiddenLayer = createCMatrix(layers[i], 1);
 		CMatrix weights = createCMatrix(layers[i - 1], layers[i]);
 		CMatrix bias = createCMatrix(layers[i], 1);
 		std::string activate = "sigmoid";
-		setCMatrix(randomNumberGeneratorFunction, hiddenLayer);
 		setCMatrix(randomNumberGeneratorFunction, weights);
 		setCMatrix(randomNumberGeneratorFunction, bias);
 
-		hiddenLayersArray[i] = hiddenLayer;
 		weightsArray[i] = weights;
 		biasArray[i] = bias;
 		activationFunctions[i] = activate;
 	}
 
 	networkSize = size - 1;
+
 }
+
+//Returns the output layer
+CMatrix NeuralNetwork::processInput(CMatrix inputNodes) {
+
+	CMatrix res = inputNodes;
+	for (int i = 0; i < networkSize; i++) {
+		res = multiply_cuda(res, weightsArray[i]);
+		res = add_cuda(res, biasArray[i]);
+
+		if (activationFunctions[i].compare("sigmoid")) {
+			res = sigmoid_cuda(res);
+		}
+		else if (activationFunctions[i].compare("tanh")) {
+			res = tanh_cuda(res);
+		}
+		else if (activationFunctions[i].compare("relu")) {
+			res = relu_cuda(res);
+		}
+		else {
+			throw std::invalid_argument("Unknown activation function found at activationFunctions " + i);
+		}
+	}
+
+	return res;
+
+}
+
+//double NeuralNetwork::computeLoss(CMatrix computedOutput, CMatrix expectedOutput) {
+//
+//	CMatrix lossMat = computeLossMatrix_cuda(computedOutput, expectedOutput);
+//	double lossValue;
+//	for (int i = 0; i < lossMat.width; i++) {
+//
+//	}
+//
+//}

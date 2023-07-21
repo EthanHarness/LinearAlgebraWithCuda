@@ -31,8 +31,9 @@ CMatrix CMatrixMultiply(CMatrix mat1, CMatrix mat2);
 
 CMatrix multiply_cuda(CMatrix mat1, CMatrix mat2);
 CMatrix smultiply_cuda(CMatrix mat, double scalar);
-
-double sigmoidFunction(double x);
-double tanhFunction(double x);
-double relu(double x);
+CMatrix add_cuda(CMatrix mat1, CMatrix mat2);
+CMatrix sigmoid_cuda(CMatrix mat1);
+CMatrix tanh_cuda(CMatrix mat1);
+CMatrix relu_cuda(CMatrix mat1);
+CMatrix computeLossMatrix_cuda(CMatrix computedMatrix, CMatrix expectedMatrix);
 
