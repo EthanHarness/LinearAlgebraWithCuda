@@ -22,9 +22,9 @@ NeuralNetwork::NeuralNetwork(int layers[], int size) {
 		setCMatrix(randomNumberGeneratorFunction, weights);
 		setCMatrix(randomNumberGeneratorFunction, bias);
 
-		weightsArray[i] = weights;
-		biasArray[i] = bias;
-		activationFunctions[i] = activate;
+		weightsArray.push_back(weights);
+		biasArray.push_back(bias);
+		activationFunctions.push_back(activate);
 	}
 
 	networkSize = size - 1;
@@ -49,7 +49,7 @@ CMatrix NeuralNetwork::processInput(CMatrix inputNodes) {
 			res = relu_cuda(res);
 		}
 		else {
-			throw std::invalid_argument("Unknown activation function found at activationFunctions " + i);
+			throw std::invalid_argument("Unknown activation function found at activationFunctions " + std::to_string(i));
 		}
 	}
 
@@ -57,12 +57,25 @@ CMatrix NeuralNetwork::processInput(CMatrix inputNodes) {
 
 }
 
-//double NeuralNetwork::computeLoss(CMatrix computedOutput, CMatrix expectedOutput) {
-//
-//	CMatrix lossMat = computeLossMatrix_cuda(computedOutput, expectedOutput);
-//	double lossValue;
-//	for (int i = 0; i < lossMat.width; i++) {
-//
-//	}
-//
-//}
+void NeuralNetwork::stochasticGradDescent(std::vector<CMatrix> trainingData, int epochs, int miniBatchSize, double learningRate, std::vector<CMatrix> testData) {
+	
+	std::random_device rd;
+	std::mt19937 g(rd());
+
+	int n = trainingData.size();
+	for(int j = 0; j < epochs; j++) {
+
+		//Shuffle training data
+		std::shuffle(trainingData.begin(), trainingData.end(), g);
+		
+		std::vector<std::vector<CMatrix>> miniBatches;
+		for(int k = 0; k < n; k += miniBatchSize) {
+			int end = std::min(k+miniBatchSize, n);
+			std::vector<CMatrix> miniBatch(trainingData.begin() + k, trainingData.end() + end);
+			miniBatches.push_back(miniBatch);
+		}
+
+	}
+
+
+}

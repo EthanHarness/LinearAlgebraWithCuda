@@ -18,6 +18,10 @@ mono_crash.*
 
 data/
 
+*.lib
+*.obj
+
+
 # Build results
 [Dd]ebug/
 [Dd]ebugPublic/

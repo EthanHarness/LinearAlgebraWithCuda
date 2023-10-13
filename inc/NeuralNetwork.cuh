@@ -13,5 +13,7 @@ public:
 
 	NeuralNetwork(int layers[], int size);
 	CMatrix processInput(CMatrix inputNodes);
-	double computeLoss(CMatrix computedOutput, CMatrix expectedOutput);
+	void stochasticGradDescent(std::vector<CMatrix> trainingData, int epochs, int miniBatchSize, double learningRate, std::vector<CMatrix> testData);
+	void updateMiniBatch(CMatrix miniBatch, double learningRate);
+	std::vector<CMatrix> backprop(CMatrix networkInput, CMatrix expectedNetworkOutput);
 };

@@ -35,7 +35,7 @@ int main()
     };
 
 
-    for(int i = 0; i < 1000; i++) {
+    for(int i = 0; i < 1000; i+=10) {
 	std::cout << "Iteration : " << i << std::endl;
 	CMatrix m1 = createCMatrix(i, i);
 	CMatrix m2 = createCMatrix(i, i);
