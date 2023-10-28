@@ -58,7 +58,6 @@ CMatrix NeuralNetwork::processInput(CMatrix inputNodes) {
 }
 
 void NeuralNetwork::stochasticGradDescent(std::vector<CMatrix> trainingData, int epochs, int miniBatchSize, double learningRate, std::vector<CMatrix> testData) {
-	
 	std::random_device rd;
 	std::mt19937 g(rd());
 

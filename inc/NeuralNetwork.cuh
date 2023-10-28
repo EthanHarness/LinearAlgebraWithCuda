@@ -23,5 +23,6 @@ public:
 	void stochasticGradDescent(std::vector<CMatrix> trainingData, int epochs, int miniBatchSize, double learningRate, std::vector<CMatrix> testData);
 	void updateMiniBatch(CMatrix miniBatch, double learningRate);
 	std::vector<CMatrix> backprop(CMatrix networkInput, CMatrix expectedNetworkOutput);
+	
 	ActivationFunctionE stringToActivationFunction(const std::string& str);
 };

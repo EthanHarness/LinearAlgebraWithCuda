@@ -12,12 +12,12 @@
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
-./MyProgram
 
 # Mono auto generated files
 mono_crash.*
 
 data/
+MyProgram
 
 *.lib
 *.obj

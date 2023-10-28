@@ -6,14 +6,13 @@
 
 void CudaVNonCuda();
 
+
 int main() {
     CudaVNonCuda();
     return 0;
 }
 
-
 void CudaVNonCuda() {
-
     //Creates and sets a bunch of CMatrix's (Mainly for testing purposes)
     CMatrix CMatrixObj = createCMatrix(5, 5);
     CMatrix CMatrixObj1 = createCMatrix(5, 5);
