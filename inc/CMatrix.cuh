@@ -12,6 +12,7 @@
 #include <cstdlib>
 #include <random>
 #include <chrono>
+#include <utility>
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
 

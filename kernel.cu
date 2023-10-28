@@ -5,10 +5,15 @@
 #define ITERATIONS 1000
 
 void CudaVNonCuda();
-
+std::vector<std::pair<CMatrix, int>> readTestData();
+std::vector<std::pair<CMatrix, int>> readTrainingData();
 
 int main() {
-    CudaVNonCuda();
+    //CudaVNonCuda();
+    std::vector<std::pair<CMatrix, int>> testData = readTestData();
+    std::vector<std::pair<CMatrix, int>> trainData = readTrainingData();
+    printCMatrix(testData[0].first);
+    printCMatrix(trainData[0].first);
     return 0;
 }
 
@@ -45,10 +50,90 @@ void CudaVNonCuda() {
 
         clock_t now = clock();
         CMatrix m3 = CMatrixMultiply(m1, m2);
-        std:: cout << "TIME: " << clock() - now << std::endl;
+        std::cout << "TIME: " << clock() - now << std::endl;
             
         now = clock();
         CMatrix m4 = multiply_cuda(m1, m2);
         std::cout << "TIME : " << clock() - now << std::endl << std::endl;
    }
+}
+
+std::vector<std::pair<CMatrix, int>> readTestData() {
+    std::ifstream file("data/mnist_test.csv");
+
+    if (!file.is_open()) {
+        std::cerr << "Error: File could not be opened." << std::endl;
+    }
+
+    std::string line;
+    std::vector<std::pair<CMatrix, int>> testData;
+    
+    //Need to consume the first line since its just header information
+    std::getline(file, line);
+
+    while (std::getline(file, line)) {
+        std::stringstream ss(line);
+        std::string value;
+
+        std::vector<int> row;
+        while (std::getline(ss, value, ',')) {
+            int intValue = std::stoi(value);
+            row.push_back(intValue);
+        }
+
+        int firstValue = row[0];
+        row.erase(row.begin());
+
+        CMatrix testingDataCMatrix = createCMatrix(1, 784);
+        std::function<double(int, int)> foo;
+        foo = [row](int x, int y) {
+            return (double)(row[y]);
+        };
+        setCMatrix(foo, testingDataCMatrix);
+
+        testData.push_back(std::make_pair(testingDataCMatrix, firstValue));
+    }
+
+    file.close();
+    return testData;
+}
+
+std::vector<std::pair<CMatrix, int>> readTestData() {
+    std::ifstream file("data/mnist_train.csv");
+
+    if (!file.is_open()) {
+        std::cerr << "Error: File could not be opened." << std::endl;
+    }
+
+    std::string line;
+    std::vector<std::pair<CMatrix, int>> testData;
+    
+    //Need to consume the first line since its just header information
+    std::getline(file, line);
+
+    while (std::getline(file, line)) {
+        std::stringstream ss(line);
+        std::string value;
+
+        std::vector<int> row;
+        while (std::getline(ss, value, ',')) {
+            int intValue = std::stoi(value);
+            row.push_back(intValue);
+        }
+
+        int firstValue = row[0];
+        row.erase(row.begin());
+
+        CMatrix testingDataCMatrix = createCMatrix(1, 784);
+        std::function<double(int, int)> foo;
+        foo = [row](int x, int y) {
+            return (double)(row[y]);
+        };
+        setCMatrix(foo, testingDataCMatrix);
+
+        testData.push_back(std::make_pair(testingDataCMatrix, firstValue));
+    }
+
+    file.close();
+    return testData;
 }
