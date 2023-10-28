@@ -98,7 +98,7 @@ std::vector<std::pair<CMatrix, int>> readTestData() {
     return testData;
 }
 
-std::vector<std::pair<CMatrix, int>> readTestData() {
+std::vector<std::pair<CMatrix, int>> readTrainingData() {
     std::ifstream file("data/mnist_train.csv");
 
     if (!file.is_open()) {
