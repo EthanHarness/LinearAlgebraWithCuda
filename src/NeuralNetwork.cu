@@ -6,7 +6,7 @@
 NeuralNetwork::NeuralNetwork(int layers[], int size) {
 	auto seed = std::chrono::system_clock::now().time_since_epoch().count();
 	std::default_random_engine generator(seed);
-	std::normal_distribution<double> distribution(0.0, 1.0);
+	std::normal_distribution<double> distribution(5.0, 1.0);
 
 	std::function<double(int, int)> randomNumberGeneratorFunction;
 	randomNumberGeneratorFunction = [generator, distribution](int x, int y) mutable {
@@ -16,7 +16,7 @@ NeuralNetwork::NeuralNetwork(int layers[], int size) {
 
 	for (int i = 1; i < size; i++) {
 		CMatrix weights = createCMatrix(layers[i - 1], layers[i]);
-		CMatrix bias = createCMatrix(layers[i], 1);
+		CMatrix bias = createCMatrix(1, layers[i]);
 		std::string activate = "sigmoid";
 		setCMatrix(randomNumberGeneratorFunction, weights);
 		setCMatrix(randomNumberGeneratorFunction, bias);
@@ -27,7 +27,6 @@ NeuralNetwork::NeuralNetwork(int layers[], int size) {
 	}
 
 	networkSize = size - 1;
-
 }
 
 //Returns the output layer
@@ -54,9 +53,9 @@ CMatrix NeuralNetwork::processInput(CMatrix inputNodes) {
 	}
 
 	return res;
-
 }
 
+//Work in progress
 void NeuralNetwork::stochasticGradDescent(std::vector<CMatrix> trainingData, int epochs, int miniBatchSize, double learningRate, std::vector<CMatrix> testData) {
 	std::random_device rd;
 	std::mt19937 g(rd());

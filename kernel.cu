@@ -1,20 +1,67 @@
-﻿#include "CMatrix.cuh"
+﻿#include "NeuralNetwork.cuh"
 #include <chrono>
 #include <ctime>
 
-#define ITERATIONS 1000
+#define ITERATIONS 10
 
+void helperFunction(NeuralNetwork network, CMatrix inputNodes);
 void CudaVNonCuda();
 std::vector<std::pair<CMatrix, int>> readTestData();
 std::vector<std::pair<CMatrix, int>> readTrainingData();
 
 int main() {
     //CudaVNonCuda();
+
     std::vector<std::pair<CMatrix, int>> testData = readTestData();
     std::vector<std::pair<CMatrix, int>> trainData = readTrainingData();
-    printCMatrix(testData[0].first);
-    printCMatrix(trainData[0].first);
+
+    int networkStructure[] = {784, 10, 10};
+    NeuralNetwork network = NeuralNetwork(networkStructure, 3);
+    //CMatrix outputLayer = network.processInput(testData[0].first);
+    helperFunction(network, testData[0].first);
+
     return 0;
+}
+
+void helperFunction(NeuralNetwork network, CMatrix inputNodes) {
+
+    CMatrix dummyInput = createCMatrix(1, 5);
+    CMatrix dummyWeights = createCMatrix(5, 3);
+    CMatrix dummyBias = createCMatrix(1, 3);
+
+    std::function<double(int, int)> foo1; 
+    std::function<double(int, int)> foo2;
+    std::function<double(int, int)> foo3;
+
+    foo1 = [](int x, int y) {
+        return (double)(x + 1.14 + y) * 1.34;
+    };
+    foo2 = [](int x, int y) {
+        return (double)(x - 2.82 + y) * 8.21;
+    };
+    foo3 = [](int x, int y) {
+        return (double)(x + 3.91 - y) * 8.92;
+    };
+
+    setCMatrix(foo1, dummyInput);
+    setCMatrix(foo2, dummyWeights);
+    setCMatrix(foo3, dummyBias);
+
+    std::cout << "Network 1" << std::endl;
+    printCMatrix(dummyInput);
+    std::cout << "Network 2" << std::endl;
+    printCMatrix(dummyWeights);
+    std::cout << "Network 3" << std::endl;
+    printCMatrix(dummyBias);
+
+
+    CMatrix res = multiply_cuda(dummyInput, dummyWeights);
+    std::cout << "Network 4" << std::endl;
+    printCMatrix(res);
+
+    res = add_cuda(res, dummyBias);
+    std::cout << "Network 5" << std::endl;
+    printCMatrix(res);
 }
 
 void CudaVNonCuda() {
@@ -37,10 +84,20 @@ void CudaVNonCuda() {
 
     setCMatrix(foo1, CMatrixObj);
     setCMatrix(foo, CMatrixObj1);
-    CMatrix CMatrixObj2 = CMatrixAdd(CMatrixObj, CMatrixObj1);
+
+    std::cout << "Mat 1" << std::endl;
+    printCMatrix(CMatrixObj);
+    std::cout << "Mat 2" << std::endl;
+    printCMatrix(CMatrixObj1);
+
+    CMatrix CMatrixObj2 = multiply_cuda(CMatrixObj, CMatrixObj1);
+
+    std::cout << "Mat 3" << std::endl;
+    printCMatrix(CMatrixObj2);
+
 
     //This does a bunch of Matrix multiplications.
-    for(int i = 0; i < ITERATIONS; i+=10) {
+    for(int i = 0; i < ITERATIONS*10; i+=10) {
         std::cout << "Iteration : " << i/10 << std::endl;
         std::cout << "Size of Matrix's are : " << i << "x" << i << std::endl;
         CMatrix m1 = createCMatrix(i, i);
