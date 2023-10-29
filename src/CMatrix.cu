@@ -48,7 +48,7 @@ __global__ void squareDiffWithCuda(CMatrix A, CMatrix B, CMatrix C) {
 	C.elements[row * C.width + col] = pow(diff, 2);
 }
 
-void setCMatrix(std::function<double(int, int)> func, CMatrix res) {
+void setCMatrix(std::function<double(int, int)> func, CMatrix& res) {
 	for (int i = 0; i < res.height; i++) {
 		for (int j = 0; j < res.width; j++) {
 			res.elements[i * res.width + j] = func(i, j);
@@ -56,7 +56,7 @@ void setCMatrix(std::function<double(int, int)> func, CMatrix res) {
 	}
 }
 
-void printCMatrix(CMatrix res) {
+void printCMatrix(const CMatrix& res) {
 	for (int i = 0; i < res.height; i++) {
 		for (int j = 0; j < res.width; j++) {
 			std::cout << res.elements[i * res.width + j] << " ";
@@ -123,6 +123,22 @@ CMatrix CMatrixMultiply(CMatrix mat1, CMatrix mat2) {
 	}
 
 	return res;
+}
+
+double getMax(CMatrix mat) {
+	double max = mat.elements[0];
+	for (int j = 1; j < mat.width; j++) {
+		max = mat.elements[mat.width + j] > max ? mat.elements[mat.width + j] : max;
+	}
+	return max;
+}
+
+double getMax(CMatrix mat, int row) {
+	double max = mat.elements[row * mat.width];
+	for (int j = 1; j < mat.width; j++) {
+		max = mat.elements[row * mat.width + j] > max ? mat.elements[row * mat.width + j] : max;
+	}
+	return max;
 }
 
 CMatrix multiply_cuda(CMatrix mat1, CMatrix mat2) {

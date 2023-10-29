@@ -1,7 +1,4 @@
 #include "CMatrix.cuh"
-#include <vector>
-#include <chrono>
-#include <stdexcept>
 
 enum class ActivationFunctionE {
     Sigmoid,
