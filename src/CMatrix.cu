@@ -1,5 +1,6 @@
 #include "CMatrix.cuh"
 
+//AxB=C
 __global__ void multiplyWithCuda(CMatrix A, CMatrix B, CMatrix C) {
 	int row = blockIdx.y * blockDim.y + threadIdx.y;
 	int col = blockIdx.x * blockDim.x + threadIdx.x;
@@ -11,36 +12,42 @@ __global__ void multiplyWithCuda(CMatrix A, CMatrix B, CMatrix C) {
 	C.elements[row * C.width + col] = sum;
 };
 
+//A*scalar=B
 __global__ void smultiplyWithCuda(CMatrix A, CMatrix B, double scalar) {
 	int row = blockIdx.y * blockDim.y + threadIdx.y;
 	int col = blockIdx.x * blockDim.x + threadIdx.x;
 	B.elements[row * B.width + col] = A.elements[row * A.width + col] * scalar;
 };
 
+//A+B=C
 __global__ void addWithCuda(CMatrix A, CMatrix B, CMatrix C) {
 	int row = blockIdx.y * blockDim.y + threadIdx.y;
 	int col = blockIdx.x * blockDim.x + threadIdx.x;
 	C.elements[row * C.width + col] = A.elements[row * A.width + col] + B.elements[row * B.width + col];
 };
 
+//sigmoid(A)=B
 __global__ void sigmoidWithCuda(CMatrix A, CMatrix B) {
 	int row = blockIdx.y * blockDim.y + threadIdx.y;
 	int col = blockIdx.x * blockDim.x + threadIdx.x;
 	B.elements[row * B.width + col] = 1 / (1 + exp(A.elements[row * A.width + col]));
 }
 
+//tanh(A)=B
 __global__ void tanhWithCuda(CMatrix A, CMatrix B) {
 	int row = blockIdx.y * blockDim.y + threadIdx.y;
 	int col = blockIdx.x * blockDim.x + threadIdx.x;
 	B.elements[row * B.width + col] = atanh(A.elements[row + A.width + col]);
 }
 
+//relu(A)=B
 __global__ void reluWithCuda(CMatrix A, CMatrix B) {
 	int row = blockIdx.y * blockDim.y + threadIdx.y;
 	int col = blockIdx.x * blockDim.x + threadIdx.x;
 	B.elements[row * B.width + col] = max(A.elements[row + A.width + col], 0.0);
 }
 
+//(A-B)^2=C
 __global__ void squareDiffWithCuda(CMatrix A, CMatrix B, CMatrix C) {
 	int row = blockIdx.y * blockDim.y + threadIdx.y;
 	int col = blockIdx.x * blockDim.x + threadIdx.x;
@@ -48,6 +55,7 @@ __global__ void squareDiffWithCuda(CMatrix A, CMatrix B, CMatrix C) {
 	C.elements[row * C.width + col] = pow(diff, 2);
 }
 
+//func(x,y)=res
 void setCMatrix(std::function<double(int, int)> func, CMatrix& res) {
 	for (int i = 0; i < res.height; i++) {
 		for (int j = 0; j < res.width; j++) {
@@ -56,6 +64,7 @@ void setCMatrix(std::function<double(int, int)> func, CMatrix& res) {
 	}
 }
 
+//print res to console
 void printCMatrix(const CMatrix& res) {
 	for (int i = 0; i < res.height; i++) {
 		for (int j = 0; j < res.width; j++) {
@@ -65,6 +74,7 @@ void printCMatrix(const CMatrix& res) {
 	}
 }
 
+//Create an empty matrix
 CMatrix createCMatrix(int rows, int cols) {
 	CMatrix res;
 	res.height = rows;
@@ -73,6 +83,7 @@ CMatrix createCMatrix(int rows, int cols) {
 	return res;
 }
 
+//A+B=C with C returned
 CMatrix CMatrixAdd(CMatrix mat1, CMatrix mat2) {
 	int cols = mat1.width;
 	int rows = mat2.height;
@@ -88,6 +99,7 @@ CMatrix CMatrixAdd(CMatrix mat1, CMatrix mat2) {
 	return result;
 }
 
+//scalar*A and returned
 CMatrix CMatrixSMultiply(CMatrix mat, double scalar) {
 	int cols = mat.width;
 	int rows = mat.height;
@@ -100,6 +112,7 @@ CMatrix CMatrixSMultiply(CMatrix mat, double scalar) {
 	return res;
 }
 
+//AxB and returned
 CMatrix CMatrixMultiply(CMatrix mat1, CMatrix mat2) {
 	int row1 = mat1.height;
 	int row2 = mat2.height;
@@ -125,6 +138,8 @@ CMatrix CMatrixMultiply(CMatrix mat1, CMatrix mat2) {
 	return res;
 }
 
+//Dont think we use
+//Gets the max element in a matrix
 double getMax(CMatrix mat) {
 	double max = mat.elements[0];
 	for (int j = 1; j < mat.width; j++) {
@@ -133,6 +148,8 @@ double getMax(CMatrix mat) {
 	return max;
 }
 
+//Dont think we use this
+//Gets the max element in a row of a matrix
 double getMax(CMatrix mat, int row) {
 	double max = mat.elements[row * mat.width];
 	for (int j = 1; j < mat.width; j++) {
@@ -141,6 +158,8 @@ double getMax(CMatrix mat, int row) {
 	return max;
 }
 
+//Helper function to multiply two matricies together
+//Mainly handles allocated memory and calling CUDA kernels
 CMatrix multiply_cuda(CMatrix mat1, CMatrix mat2) {
 	int row1 = mat1.height;
 	int row2 = mat2.height;
@@ -184,6 +203,7 @@ CMatrix multiply_cuda(CMatrix mat1, CMatrix mat2) {
 	return res;
 };
 
+//Helper function to multiply a matrix by a scalar
 CMatrix smultiply_cuda(CMatrix mat, double scalar) {
 	int rows = mat.height;
 	int cols = mat.width;
@@ -216,6 +236,7 @@ CMatrix smultiply_cuda(CMatrix mat, double scalar) {
 	return res;
 }
 
+//Helper function to add two mats together
 CMatrix add_cuda(CMatrix mat1, CMatrix mat2) {
 	int row1 = mat1.height;
 	int row2 = mat2.height;
@@ -259,6 +280,7 @@ CMatrix add_cuda(CMatrix mat1, CMatrix mat2) {
 	return res;
 }
 
+//Helper function to sigmoid a mat
 CMatrix sigmoid_cuda(CMatrix mat1) {
 	int row = mat1.height;
 	int col = mat1.width;
@@ -291,6 +313,7 @@ CMatrix sigmoid_cuda(CMatrix mat1) {
 	return res;
 }
 
+//Helper function to relu a mat
 CMatrix relu_cuda(CMatrix mat1) {
 	int row = mat1.height;
 	int col = mat1.width;
@@ -323,6 +346,7 @@ CMatrix relu_cuda(CMatrix mat1) {
 	return res;
 }
 
+//Helper function to tanh a mat
 CMatrix tanh_cuda(CMatrix mat1) {
 	int row = mat1.height;
 	int col = mat1.width;
@@ -355,6 +379,7 @@ CMatrix tanh_cuda(CMatrix mat1) {
 	return res;
 }
 
+//Helper function to compute the square diff CUDA kernel and return it
 CMatrix computeLossMatrix_cuda(CMatrix computedMatrix, CMatrix expectedMatrix) {
 	int row = computedMatrix.height;
 	int col = computedMatrix.width;
