@@ -30,21 +30,21 @@ __global__ void addWithCuda(CMatrix A, CMatrix B, CMatrix C) {
 __global__ void sigmoidWithCuda(CMatrix A, CMatrix B) {
 	int row = blockIdx.y * blockDim.y + threadIdx.y;
 	int col = blockIdx.x * blockDim.x + threadIdx.x;
-	B.elements[row * B.width + col] = 1 / (1 + exp(A.elements[row * A.width + col]));
+	B.elements[row * B.width + col] = 1 / (1 + exp(-(A.elements[row * A.width + col])));
 }
 
 //tanh(A)=B
 __global__ void tanhWithCuda(CMatrix A, CMatrix B) {
 	int row = blockIdx.y * blockDim.y + threadIdx.y;
 	int col = blockIdx.x * blockDim.x + threadIdx.x;
-	B.elements[row * B.width + col] = atanh(A.elements[row + A.width + col]);
+	B.elements[row * B.width + col] = tanh(A.elements[row * A.width + col]);
 }
 
 //relu(A)=B
 __global__ void reluWithCuda(CMatrix A, CMatrix B) {
 	int row = blockIdx.y * blockDim.y + threadIdx.y;
 	int col = blockIdx.x * blockDim.x + threadIdx.x;
-	B.elements[row * B.width + col] = max(A.elements[row + A.width + col], 0.0);
+	B.elements[row * B.width + col] = max(A.elements[row * A.width + col], 0.0);
 }
 
 //(A-B)^2=C
@@ -64,14 +64,24 @@ void setCMatrix(std::function<double(int, int)> func, CMatrix& res) {
 	}
 }
 
-//print res to console
+//print res to console formatted in a python syntax (Could probably refactor)
 void printCMatrix(const CMatrix& res) {
-	for (int i = 0; i < res.height; i++) {
-		for (int j = 0; j < res.width; j++) {
-			std::cout << res.elements[i * res.width + j] << " ";
+	std::cout << "[";
+	for (int i = 0; i < res.height-1; i++) {
+		std::cout << "[";
+		for (int j = 0; j < res.width-1; j++) {
+			std::cout << res.elements[i * res.width + j] << ", ";
 		}
-		std::cout << "\n";
+		std::cout << res.elements[i * res.width + (res.width-1)];
+		std::cout << "],";
 	}
+	std::cout << "[";
+	for (int j = 0; j < res.width-1; j++) {
+		std::cout << res.elements[(res.height-1) * res.width + j] << ", ";
+	}
+	std::cout << res.elements[(res.height-1) * res.width + (res.width-1)];
+	std::cout << "]";
+	std::cout << "]\n";
 }
 
 //Create an empty matrix

@@ -24,8 +24,10 @@ int main() {
     */
     int networkStructure[] = {784, 10, 10};
     NeuralNetwork network = NeuralNetwork(networkStructure, 3);
-    //CMatrix outputLayer = network.processInput(testData[0].first);
+    
     helperFunction(network, testData[0].first);
+    
+    //CMatrix outputLayer = network.processInput(testData[0].first);
 
     return 0;
 }
@@ -53,23 +55,9 @@ void helperFunction(NeuralNetwork network, CMatrix inputNodes) {
     };
 
     setCMatrix(foo1, dummyInput);
-    setCMatrix(foo2, dummyWeights);
-    setCMatrix(foo3, dummyBias);
-
-    std::cout << "Network 1" << "\n";
+    CMatrix res = relu_cuda(dummyInput);
     printCMatrix(dummyInput);
-    std::cout << "Network 2" << "\n";
-    printCMatrix(dummyWeights);
-    std::cout << "Network 3" << "\n";
-    printCMatrix(dummyBias);
-
-
-    CMatrix res = multiply_cuda(dummyInput, dummyWeights);
-    std::cout << "Network 4" << std::endl;
-    printCMatrix(res);
-
-    res = add_cuda(res, dummyBias);
-    std::cout << "Network 5" << std::endl;
+    std::cout << "\n";
     printCMatrix(res);
 }
 
