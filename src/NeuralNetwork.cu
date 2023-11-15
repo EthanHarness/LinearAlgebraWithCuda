@@ -78,6 +78,8 @@ void NeuralNetwork::stochasticGradDescent(std::vector<CMatrix> trainingData, int
 
 }
 
+//Converts a string of our activation function to an enum ActivationFunctionE 
+//Probably could refactor this to be more efficient
 ActivationFunctionE NeuralNetwork::stringToActivationFunction(const std::string& str) {
     if (str == "sigmoid") return ActivationFunctionE::Sigmoid;
     if (str == "tanh") return ActivationFunctionE::Tanh;

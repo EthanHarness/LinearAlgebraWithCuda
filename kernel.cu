@@ -12,17 +12,28 @@ std::vector<std::pair<CMatrix, int>> readTrainingData();
 int main() {
     //CudaVNonCuda();
 
+    //Takes in mnist training sets
     std::vector<std::pair<CMatrix, int>> testData = readTestData();
     std::vector<std::pair<CMatrix, int>> trainData = readTrainingData();
 
+    /*
+    Initializes network strucutre. 
+    784 (28x28) neurons in layer 1 with 784x10 weights total (CUDA IS GOATED AT THIS)
+    10 neurons layer 2 with again 10x10 weights total
+    Final layer holds output information. We are choosing 1 out of 10 outputs
+    */
     int networkStructure[] = {784, 10, 10};
     NeuralNetwork network = NeuralNetwork(networkStructure, 3);
-    //CMatrix outputLayer = network.processInput(testData[0].first);
+    
     helperFunction(network, testData[0].first);
+    
+    //CMatrix outputLayer = network.processInput(testData[0].first);
 
     return 0;
 }
 
+//This function is to test various functions. 
+//Probably should have written unit tests but fuck it.
 void helperFunction(NeuralNetwork network, CMatrix inputNodes) {
 
     CMatrix dummyInput = createCMatrix(1, 5);
@@ -44,26 +55,14 @@ void helperFunction(NeuralNetwork network, CMatrix inputNodes) {
     };
 
     setCMatrix(foo1, dummyInput);
-    setCMatrix(foo2, dummyWeights);
-    setCMatrix(foo3, dummyBias);
-
-    std::cout << "Network 1" << std::endl;
+    CMatrix res = relu_cuda(dummyInput);
     printCMatrix(dummyInput);
-    std::cout << "Network 2" << std::endl;
-    printCMatrix(dummyWeights);
-    std::cout << "Network 3" << std::endl;
-    printCMatrix(dummyBias);
-
-
-    CMatrix res = multiply_cuda(dummyInput, dummyWeights);
-    std::cout << "Network 4" << std::endl;
-    printCMatrix(res);
-
-    res = add_cuda(res, dummyBias);
-    std::cout << "Network 5" << std::endl;
+    std::cout << "\n";
     printCMatrix(res);
 }
 
+//A little DEMO function I wrote to compare the speed of 
+//CUDA matrix multiplication vs regular matrix multiplication
 void CudaVNonCuda() {
     //Creates and sets a bunch of CMatrix's (Mainly for testing purposes)
     CMatrix CMatrixObj = createCMatrix(5, 5);
@@ -115,6 +114,7 @@ void CudaVNonCuda() {
    }
 }
 
+//Reads in test data for our NN to store
 std::vector<std::pair<CMatrix, int>> readTestData() {
     std::ifstream file("data/mnist_test.csv");
 
@@ -155,6 +155,7 @@ std::vector<std::pair<CMatrix, int>> readTestData() {
     return testData;
 }
 
+//Reads in training data for our NN to store
 std::vector<std::pair<CMatrix, int>> readTrainingData() {
     std::ifstream file("data/mnist_train.csv");
 
