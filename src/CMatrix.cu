@@ -430,3 +430,8 @@ CMatrix computeLossMatrix_cuda(CMatrix computedMatrix, CMatrix expectedMatrix) {
 
 	return res;
 }
+
+void freeCMatrix(CMatrix &matrix) {
+    free(matrix.elements);
+    matrix.elements = nullptr;
+}
