@@ -25,8 +25,9 @@ int main() {
     int networkStructure[] = {784, 10, 10};
     NeuralNetwork network = NeuralNetwork(networkStructure, 3);
     
+
     //helperFunction(network, testData[0].first);
-    
+
     CMatrix outputLayer = network.processInput(testData[0].first);
     std::cout << "Result\n";
     printCMatrix(outputLayer);

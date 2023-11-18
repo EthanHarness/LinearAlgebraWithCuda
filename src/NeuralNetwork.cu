@@ -6,7 +6,7 @@
 NeuralNetwork::NeuralNetwork(int layers[], int size) {
 	auto seed = std::chrono::system_clock::now().time_since_epoch().count();
 	std::default_random_engine generator(seed);
-	std::normal_distribution<double> distribution(0, 1.0);
+	std::normal_distribution<double> distribution(0, 255.0);
 
 	std::function<double(int, int)> randomNumberGeneratorFunction;
 	randomNumberGeneratorFunction = [generator, distribution](int x, int y) mutable {
@@ -36,11 +36,34 @@ NeuralNetwork::NeuralNetwork(int layers[], int size) {
 
 //Returns the output layer
 CMatrix NeuralNetwork::processInput(CMatrix inputNodes) {
+	using namespace std;
 	CMatrix temp1, temp2, temp3, res;
 	temp1 = inputNodes;
 	for (int i = 0; i < networkSize; i++, temp1 = res) {
+		cout << "Iteration: " << i << "\n";
+		cout << "::::::::::::::::::Multiply::::::::::::::::::\n";
+		cout << ":::::::::::::::::::::::::::::::::::::::::::::::::\n";
+
+		cout << "Weights: " << i << " (input a" << ")\n";
+		printCMatrix(weightsArray[i]);
+		cout << "Layer: " << i << " (input b" << i << ")\n";
+		printCMatrix(temp1);
 		temp2 = multiply_cuda(temp1, weightsArray[i]);
+
+		cout << "\n\n\n" << "::::::::::::::::::Add::::::::::::::::::\n";
+		cout << ":::::::::::::::::::::::::::::::::::::::::::::::::\n";
+
+		cout << "Bias: " << i << " (input c" << i << ")\n";
+		printCMatrix(biasArray[i]);
+		cout << "Multiply result: " << i << "(input d" << i << ")\n";
+		printCMatrix(temp2);
+
+		cout << "\n\n\n" << "::::::::::::::::::Non linear Activation Function::::::::::::::::::\n";
+		cout << ":::::::::::::::::::::::::::::::::::::::::::::::::\n";
+
+		cout << "Result (Pre-Activation Function): " << i << " (Type " << activationFunctions[i] << ")\n";
 		temp3 = add_cuda(temp2, biasArray[i]);
+		printCMatrix(temp3);
 
 		ActivationFunctionE func = stringToActivationFunction(activationFunctions[i]);
 		switch (func) {
@@ -57,9 +80,14 @@ CMatrix NeuralNetwork::processInput(CMatrix inputNodes) {
 				throw std::invalid_argument("Unknown activation function found at activationFunctions " + std::to_string(i));
 		}
 
+		cout << "Result (Post-Activation Function): " << i << " (Type " << activationFunctions[i] << ")\n";
+		printCMatrix(res);
+		cout << "\n\n\n";
+
 		freeCMatrix(temp1);
 		freeCMatrix(temp2);
 		freeCMatrix(temp3);
+		std::cout << "\n\n\n";
 	}
 
 	return res;
