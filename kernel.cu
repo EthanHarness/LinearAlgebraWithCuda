@@ -29,8 +29,23 @@ int main() {
     //helperFunction(network, testData[0].first);
 
     CMatrix outputLayer = network.processInput(testData[0].first);
-    std::cout << "Result\n";
+    CMatrix knownMatrix = createCMatrix(1, 10);
+    knownMatrix.elements[testData[0].second] = 1;
+    CMatrix error = computeLossMatrix_cuda(outputLayer, knownMatrix);
+
+    std::cout << "Known Matrix\n";
+    printCMatrix(knownMatrix);
+    std::cout << "\n\n\n";
+
+    std::cout << "Predicted\n";
     printCMatrix(outputLayer);
+    std::cout << "\n\n\n";
+
+    std::cout << "Squared Diff(Error)\n";
+    printCMatrix(error);
+    std::cout << "\n\n\n";
+
+
 
     return 0;
 }

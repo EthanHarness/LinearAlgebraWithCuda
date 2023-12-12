@@ -24,11 +24,6 @@ NeuralNetwork::NeuralNetwork(int layers[], int size) {
 		weightsArray.push_back(weights);
 		biasArray.push_back(bias);
 		activationFunctions.push_back(activate);
-
-		//Data collection documenation (Not part of main algo)
-		//Step 1 calculate size of weights[i]
-		//Step 2 calculate size of bias[i]
-		//Size of weights[i] = sizeof(double)*layers[i-1]*layers[i]
 	}
 
 	networkSize = size - 1;
@@ -40,30 +35,9 @@ CMatrix NeuralNetwork::processInput(CMatrix inputNodes) {
 	CMatrix temp1, temp2, temp3, res;
 	temp1 = inputNodes;
 	for (int i = 0; i < networkSize; i++, temp1 = res) {
-		cout << "Iteration: " << i << "\n";
-		cout << "::::::::::::::::::Multiply::::::::::::::::::\n";
-		cout << ":::::::::::::::::::::::::::::::::::::::::::::::::\n";
 
-		cout << "Weights: " << i << " (input a" << ")\n";
-		printCMatrix(weightsArray[i]);
-		cout << "Layer: " << i << " (input b" << i << ")\n";
-		printCMatrix(temp1);
 		temp2 = multiply_cuda(temp1, weightsArray[i]);
-
-		cout << "\n\n\n" << "::::::::::::::::::Add::::::::::::::::::\n";
-		cout << ":::::::::::::::::::::::::::::::::::::::::::::::::\n";
-
-		cout << "Bias: " << i << " (input c" << i << ")\n";
-		printCMatrix(biasArray[i]);
-		cout << "Multiply result: " << i << "(input d" << i << ")\n";
-		printCMatrix(temp2);
-
-		cout << "\n\n\n" << "::::::::::::::::::Non linear Activation Function::::::::::::::::::\n";
-		cout << ":::::::::::::::::::::::::::::::::::::::::::::::::\n";
-
-		cout << "Result (Pre-Activation Function): " << i << " (Type " << activationFunctions[i] << ")\n";
 		temp3 = add_cuda(temp2, biasArray[i]);
-		printCMatrix(temp3);
 
 		ActivationFunctionE func = stringToActivationFunction(activationFunctions[i]);
 		switch (func) {
@@ -80,14 +54,9 @@ CMatrix NeuralNetwork::processInput(CMatrix inputNodes) {
 				throw std::invalid_argument("Unknown activation function found at activationFunctions " + std::to_string(i));
 		}
 
-		cout << "Result (Post-Activation Function): " << i << " (Type " << activationFunctions[i] << ")\n";
-		printCMatrix(res);
-		cout << "\n\n\n";
-
 		freeCMatrix(temp1);
 		freeCMatrix(temp2);
 		freeCMatrix(temp3);
-		std::cout << "\n\n\n";
 	}
 
 	return res;
