@@ -6,7 +6,7 @@
 NeuralNetwork::NeuralNetwork(int layers[], int size) {
 	auto seed = std::chrono::system_clock::now().time_since_epoch().count();
 	std::default_random_engine generator(seed);
-	std::normal_distribution<double> distribution(5.0, 1.0);
+	std::normal_distribution<double> distribution(0, 255.0);
 
 	std::function<double(int, int)> randomNumberGeneratorFunction;
 	randomNumberGeneratorFunction = [generator, distribution](int x, int y) mutable {
@@ -31,25 +31,32 @@ NeuralNetwork::NeuralNetwork(int layers[], int size) {
 
 //Returns the output layer
 CMatrix NeuralNetwork::processInput(CMatrix inputNodes) {
-	CMatrix res = inputNodes;
-	for (int i = 0; i < networkSize; i++) {
-		res = multiply_cuda(res, weightsArray[i]);
-		res = add_cuda(res, biasArray[i]);
+	using namespace std;
+	CMatrix temp1, temp2, temp3, res;
+	temp1 = inputNodes;
+	for (int i = 0; i < networkSize; i++, temp1 = res) {
+
+		temp2 = multiply_cuda(temp1, weightsArray[i]);
+		temp3 = add_cuda(temp2, biasArray[i]);
 
 		ActivationFunctionE func = stringToActivationFunction(activationFunctions[i]);
 		switch (func) {
 			case ActivationFunctionE::Sigmoid:
-				res = sigmoid_cuda(res);
+				res = sigmoid_cuda(temp3);
 				break;
 			case ActivationFunctionE::Tanh:
-				res = tanh_cuda(res);
+				res = tanh_cuda(temp3);
 				break;
 			case ActivationFunctionE::Relu:
-				res = relu_cuda(res);
+				res = relu_cuda(temp3);
 				break;
 			default:
 				throw std::invalid_argument("Unknown activation function found at activationFunctions " + std::to_string(i));
 		}
+
+		freeCMatrix(temp1);
+		freeCMatrix(temp2);
+		freeCMatrix(temp3);
 	}
 
 	return res;
