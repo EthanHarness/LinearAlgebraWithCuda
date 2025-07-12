@@ -1,5 +1,9 @@
 #include "NeuralNetwork.cuh"
 
+const std::function<double(int, int)> zeroFunc = [](int x, int y) {
+		return 0;
+	};
+
 //takes in an array of ints and the size of the array
 //each value in the array is the size of the corresponding hidden layer
 //first value is the size of the input layer. We will not be setting anything for the first layer since its the input. 
@@ -17,8 +21,8 @@ NeuralNetwork::NeuralNetwork(int layers[], int size) {
 
 
 	for (int i = 1; i < size; i++) {
-		CMatrix weights = createCMatrix(layers[i - 1], layers[i]);
-		CMatrix bias = createCMatrix(1, layers[i]);
+		CMatrix weights = createCMatrix(layers[i], layers[i-1]);
+		CMatrix bias = createCMatrix(layers[i], 1);
 		setCMatrix(randomNumberGeneratorFunction, weights);
 		setCMatrix(randomNumberGeneratorFunction, bias);
 
@@ -30,14 +34,19 @@ NeuralNetwork::NeuralNetwork(int layers[], int size) {
 	networkSize = size - 1;
 }
 
-//Returns the output layer based off the network
+//Returns the output layer based off the networks current weights and biases.
+//DOES NOT MODIFY OR ADJUST THOSE WEIGHTS AND BIASES.
 CMatrix NeuralNetwork::processInput(CMatrix inputNodes) {
 	using namespace std;
 	CMatrix temp1, temp2, temp3, res;
 	temp1 = inputNodes;
+	std::cout << "Size of input layer : " << temp1.height << "x" << temp1.width << "\n";
 	for (int i = 0; i < networkSize; i++, temp1 = res) {
 
-		temp2 = multiply_cuda(temp1, weightsArray[i]);
+		std::cout << "Size of Layer " << i << " Weights is : " << weightsArray[i].height << "x" << weightsArray[i].width << "\n";
+		std::cout << "Size of Layer " << i << " Biasies is : " << biasArray[i].height << "x" << biasArray[i].width << "\n";
+		
+		temp2 = multiply_cuda(weightsArray[i], temp1);
 		temp3 = add_cuda(temp2, biasArray[i]);
 
 		switch (activationFunctions[i]) {
@@ -56,6 +65,8 @@ CMatrix NeuralNetwork::processInput(CMatrix inputNodes) {
 				throw std::invalid_argument("Unknown activation function found at activationFunctions " + std::to_string(i));
 		}
 
+		std::cout << "\n";
+
 		freeCMatrix(temp1);
 		freeCMatrix(temp2);
 		freeCMatrix(temp3);
@@ -64,7 +75,7 @@ CMatrix NeuralNetwork::processInput(CMatrix inputNodes) {
 	return res;
 }
 
-//Work in progress
+//Performs stochastic gradient descent to train the neural network
 void NeuralNetwork::stochasticGradDescent(std::vector<std::pair<CMatrix, int>> trainingData, int epochs, int miniBatchSize, double learningRate, std::vector<std::pair<CMatrix, int>> testData) {
 	std::random_device rd;
 	std::mt19937 g(rd());
@@ -89,10 +100,8 @@ void NeuralNetwork::stochasticGradDescent(std::vector<std::pair<CMatrix, int>> t
 	}
 }
 
+//This function updates the weights and biasies according to the output of the backprop algo
 void NeuralNetwork::updateMiniBatch(std::vector<std::pair<CMatrix, int>> miniBatch, double learningRate) {
-	std::function<double(int, int)> zeroFunc = [](int x, int y) {
-		return 0;
-	};
 
 	std::vector<CMatrix> nabla_b;
 	for (auto bias : biasArray) {
@@ -116,7 +125,7 @@ void NeuralNetwork::updateMiniBatch(std::vector<std::pair<CMatrix, int>> miniBat
 
 		if (nabla_b.front().height != delta_nabla_b.front().height || nabla_b.front().width != delta_nabla_b.front().width || 
 			nabla_w.front().height != delta_nabla_w.front().height || nabla_w.front().width != delta_nabla_w.front().width)
-			std::cerr << "Somehow someway one of the delta arrays is not equivalent to its corresponding nabla array\n";
+				throw std::runtime_error("Somehow someway one of the delta arrays is not equivalent to its corresponding nabla array");
 
 		for (int i = 0; i < nabla_b.size(); i++) {
 			CMatrix t = add_cuda(nabla_b[i], delta_nabla_b[i]);
@@ -130,7 +139,7 @@ void NeuralNetwork::updateMiniBatch(std::vector<std::pair<CMatrix, int>> miniBat
 
 	if (nabla_b.front().height != biasArray.front().height || nabla_b.front().width != biasArray.front().width || 
 			nabla_w.front().height != weightsArray.front().height || nabla_w.front().width != weightsArray.front().width)
-			std::cerr << "Somehow someway one of the nabla arrays is not equivalent to its corresponding original array\n";
+			throw std::runtime_error("Somehow someway one of the nabla arrays is not equivalent to its corresponding original array");
 
 	const double scalar = learningRate/miniBatch.size();
 	for (int i = 0; i < weightsArray.size(); i++) {
@@ -141,13 +150,42 @@ void NeuralNetwork::updateMiniBatch(std::vector<std::pair<CMatrix, int>> miniBat
 	}
 }
 
-//WIP No progress done
+//WIP (need to implement a transpose function in CMatrix)
 std::pair<std::vector<CMatrix>, std::vector<CMatrix>> NeuralNetwork::backprop(CMatrix networkInput, int expectedInputsOutput) {
-	std::vector<CMatrix> vec1; 
-	vec1.push_back(createCMatrix(1,1));
-	std::vector<CMatrix> vec2;
-	vec2.push_back(createCMatrix(1,1));
-	return std::pair<std::vector<CMatrix>, std::vector<CMatrix>>(vec1, vec2);
+	std::vector<CMatrix> nabla_b;
+	std::vector<CMatrix> nabla_w;
+	for (auto bias : biasArray) {
+		CMatrix t = createCMatrix(bias.height, bias.width);
+		setCMatrix(zeroFunc, t); 
+		nabla_b.push_back(t);
+	}
+	for (auto weights : weightsArray) {
+		CMatrix t = createCMatrix(weights.height, weights.width);
+		setCMatrix(zeroFunc, t); 
+		nabla_b.push_back(t);
+	}
+
+	CMatrix currentLayerActivation = networkInput; 
+	std::vector<CMatrix> computedLayerFinalResult{networkInput}; //Also contains first layer
+	std::vector<CMatrix> computedLayerIntermediateResult;
+	for (int i = 0; i < biasArray.size(); i++) {
+		if (biasArray[i].height != weightsArray[i].height || biasArray[i].width != weightsArray[i].width) {
+			std::ostringstream oss;
+			oss << "Somehow someway the bias array in layer " << i << " does not match the weights array";
+			std::string errorMsg = oss.str();
+			throw std::runtime_error(errorMsg);
+		}
+		
+		CMatrix intermediate = add_cuda(multiply_cuda(weightsArray[i], currentLayerActivation), biasArray[i]);
+		computedLayerIntermediateResult.push_back(intermediate);
+		currentLayerActivation = sigmoid_cuda(intermediate);
+		computedLayerFinalResult.push_back(currentLayerActivation);
+	}
+
+	CMatrix delta = multiply_cuda(sadd_cuda(computedLayerFinalResult.back(), (expectedInputsOutput*-1)), sigmoid_prime_cuda(computedLayerIntermediateResult.back()));
+	nabla_b.back() = delta;
+	//nabla_w.back() = multiply_cuda(delta, transpose_cuda(computedLayerFinalResult[computedLayerFinalResult.size()-2]))
+
 }
 
 //WIP No progress done

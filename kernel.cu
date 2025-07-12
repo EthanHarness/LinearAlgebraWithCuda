@@ -6,6 +6,7 @@
 #include <vector>
 #include <sstream>
 #include <chrono>
+#include <stdexcept>
 
 void helperFunction(NeuralNetwork network, CMatrix inputNodes);
 void CudaVNonCuda();
@@ -89,47 +90,21 @@ void helperFunction(NeuralNetwork network, CMatrix inputNodes) {
 //CUDA matrix multiplication vs regular matrix multiplication
 void CudaVNonCuda() {
     //Creates and sets a bunch of CMatrix's (Mainly for testing purposes)
-    CMatrix CMatrixObj = createCMatrix(5, 5);
-    CMatrix CMatrixObj1 = createCMatrix(5, 5);
-    std::function<double(int, int)> foo; 
-    std::function<double(int, int)> foo1;
-    std::function<double(int, int)> foo2;
-    const int iterations = 20;
-    const int matrix_scale_factor = 10;
+    const int iterations = 10;
+    const int matrix_scale_factor = 8;
 
-    foo = [](int x, int y) {
-        return (double)((x * x) + y);
+    std::function<double(int, int)> foo = [](int x, int y) {
+        return (double)((x + 2*y));
     };
-    foo1 = [](int x, int y) {
-        return (double)((y * y) + x);
-    };
-    foo2 = [](int x, int y) {
-        return (double)(x + 1);
-    };
-
-    setCMatrix(foo1, CMatrixObj);
-    setCMatrix(foo, CMatrixObj1);
-
-    std::cout << "Mat 1" << std::endl;
-    printCMatrix(CMatrixObj);
-    std::cout << "Mat 2" << std::endl;
-    printCMatrix(CMatrixObj1);
-
-    CMatrix CMatrixObj2 = multiply_cuda(CMatrixObj, CMatrixObj1);
-
-    std::cout << "Mat 3" << std::endl;
-    printCMatrix(CMatrixObj2);
-    std::cout << "\n" << std::endl;
-
 
     //This does a bunch of Matrix multiplications.
-    for(int i = 1; i < iterations*matrix_scale_factor; i+=10) {
-        std::cout << "Iteration : " << i/10 << std::endl;
-        std::cout << "Size of Matrix's are : " << i << "x" << i << std::endl;
-        CMatrix m1 = createCMatrix(i, i);
-        CMatrix m2 = createCMatrix(i, i);
+    for(int i = 1; i < iterations*matrix_scale_factor; i+=matrix_scale_factor) {
+        CMatrix m1 = createCMatrix(i+1, i);
+        CMatrix m2 = createCMatrix(i, i+1);
         setCMatrix(foo, m1);
         setCMatrix(foo, m2);
+        std::cout << "Size of Matrix 1 is : " << m1.height << "x" << m1.width << std::endl;
+        std::cout << "Size of Matrix 2 is : " << m2.height << "x" << m2.width << std::endl;
 
         clock_t now = clock();
         CMatrix m3 = CMatrixMultiply(m1, m2);
@@ -138,6 +113,9 @@ void CudaVNonCuda() {
         now = clock();
         CMatrix m4 = multiply_cuda(m1, m2);
         std::cout << "TIME CUDA Mult : " << clock() - now << std::endl << std::endl;
+
+        printCMatrix(m1);
+        printCMatrix(m2);
 
         freeCMatrix(m1);
         freeCMatrix(m2);
@@ -151,7 +129,7 @@ std::vector<std::pair<CMatrix, int>> readTestData() {
     std::ifstream file("data/mnist_test.csv");
 
     if (!file.is_open()) {
-        std::cerr << "Error: File could not be opened." << std::endl;
+        throw std::runtime_error("Error: File could not be opened.");
     }
 
     std::string line;
@@ -171,9 +149,9 @@ std::vector<std::pair<CMatrix, int>> readTestData() {
         }
 
         int firstValue = row[0];
+        CMatrix testingDataCMatrix = createCMatrix(row.size()-1, 1);
         row.erase(row.begin());
-
-        CMatrix testingDataCMatrix = createCMatrix(1, 784);
+        
         std::function<double(int, int)> foo;
         foo = [row](int x, int y) {
             return (double)(row[y]);
@@ -192,7 +170,7 @@ std::vector<std::pair<CMatrix, int>> readTrainingData() {
     std::ifstream file("data/mnist_train.csv");
 
     if (!file.is_open()) {
-        std::cerr << "Error: File could not be opened." << std::endl;
+        throw std::runtime_error("Error: File could not be opened.");
     }
 
     std::string line;
@@ -212,9 +190,9 @@ std::vector<std::pair<CMatrix, int>> readTrainingData() {
         }
 
         int firstValue = row[0];
+        CMatrix testingDataCMatrix = createCMatrix(row.size()-1, 1);
         row.erase(row.begin());
 
-        CMatrix testingDataCMatrix = createCMatrix(1, 784);
         std::function<double(int, int)> foo;
         foo = [row](int x, int y) {
             return (double)(row[y]);

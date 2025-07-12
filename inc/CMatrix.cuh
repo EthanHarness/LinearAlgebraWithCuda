@@ -22,8 +22,9 @@ double getMax(CMatrix mat);
 double getMax(CMatrix mat, int row);
 void freeCMatrix(CMatrix &matrix);
 
-CMatrix multiply_cuda(CMatrix mat1, CMatrix mat2);
 CMatrix smultiply_cuda(CMatrix mat, double scalar);
+CMatrix sadd_cuda(CMatrix mat1, double scalar);
+CMatrix multiply_cuda(CMatrix mat1, CMatrix mat2);
 CMatrix add_cuda(CMatrix mat1, CMatrix mat2);
 CMatrix subtract_cuda(CMatrix mat1, CMatrix mat2);
 CMatrix sigmoid_cuda(CMatrix mat1);

@@ -4,6 +4,8 @@
 #include <chrono>
 #include <algorithm>
 #include <iostream>
+#include <stdexcept>
+#include <sstream>
 
 enum class ActivationFunctionE {
     Sigmoid,
@@ -19,6 +21,7 @@ public:
 	std::vector<CMatrix> biasArray;
 	std::vector<ActivationFunctionE> activationFunctions;
 	int networkSize;
+	const std::function<double(int, int)> zeroFunc;
 
 	NeuralNetwork(int layers[], int size);
 	CMatrix processInput(CMatrix inputNodes);

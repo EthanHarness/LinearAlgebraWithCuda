@@ -87,22 +87,22 @@ void setCMatrix(std::function<double(int, int)> func, CMatrix& res) {
 
 //print res to console formatted in a python syntax (Could probably refactor)
 void printCMatrix(const CMatrix& res) {
-	std::cout << "[";
-	for (int i = 0; i < res.height-1; i++) {
-		std::cout << "[";
-		for (int j = 0; j < res.width-1; j++) {
-			std::cout << res.elements[i * res.width + j] << ", ";
+	std::cout << "[\n";
+	for (int i = 0; i <= res.height-1; i++) {
+		std::cout << "   [";
+		for (int j = 0; j <= res.width-1; j++) {
+			std::cout << res.elements[i * res.width + j];
+			if (j != res.width-1) {
+				std::cout << ",";
+			}
 		}
-		std::cout << res.elements[i * res.width + (res.width-1)];
-		std::cout << "],";
+		if (i != res.height-1) {
+			std::cout << "],\n";
+		} else {
+			std::cout << "]\n";
+		}
 	}
-	std::cout << "[";
-	for (int j = 0; j < res.width-1; j++) {
-		std::cout << res.elements[(res.height-1) * res.width + j] << ", ";
-	}
-	std::cout << res.elements[(res.height-1) * res.width + (res.width-1)];
-	std::cout << "]";
-	std::cout << "]\n";
+	std::cout << "]\n\n";
 }
 
 //Create an empty matrix
@@ -120,7 +120,7 @@ CMatrix CMatrixAdd(CMatrix mat1, CMatrix mat2) {
 	int rows = mat2.height;
 
 	if (cols != mat2.width || rows != mat2.height)
-		throw std::invalid_argument("Matricies are not the same size.");
+		throw std::runtime_error("Matricies are not the same size.");
 
 	CMatrix result = createCMatrix(cols, rows);
 	std::function<double(int, int)> add = [mat1, mat2, cols](int i, int j) {
@@ -151,7 +151,7 @@ CMatrix CMatrixMultiply(CMatrix mat1, CMatrix mat2) {
 	int col2 = mat2.width;
 
 	if (col1 != row2)
-		throw std::invalid_argument("Columns of matrix 1 do not equal the rows of matrix 2.");
+		throw std::runtime_error("Columns of matrix 1 do not equal the rows of matrix 2.");
 
 	CMatrix res = createCMatrix(row1, col2);
 	double* resHead = res.elements;
@@ -198,7 +198,7 @@ CMatrix multiply_cuda(CMatrix mat1, CMatrix mat2) {
 	int col2 = mat2.width;
 
 	if (col1 != row2)
-		throw std::invalid_argument("Columns of matrix 1 do not equal the rows of matrix 2.");
+		throw std::runtime_error("Columns of matrix 1 do not equal the rows of matrix 2.");
 
 	CMatrix res = createCMatrix(row1, col2);
 
@@ -267,6 +267,39 @@ CMatrix smultiply_cuda(CMatrix mat, double scalar) {
 	return res;
 }
 
+//Helper function to add a matrix by a scalar
+CMatrix sadd_cuda(CMatrix mat, double scalar) {
+	int rows = mat.height;
+	int cols = mat.width;
+
+	CMatrix res = createCMatrix(rows, cols);
+
+	CMatrix device_matrix_A;
+	CMatrix device_matrix_B;
+
+	device_matrix_A.width = mat.width;device_matrix_A.height = mat.height;
+	device_matrix_B.width = res.width;device_matrix_B.height = res.height;
+
+	size_t size_A = mat.width * mat.height * sizeof(double);
+	size_t size_B = res.width * res.height * sizeof(double);
+
+	cudaMalloc(&device_matrix_A.elements, size_A);
+	cudaMemcpy(device_matrix_A.elements, mat.elements, size_A, cudaMemcpyHostToDevice);
+	cudaMalloc(&device_matrix_B.elements, size_B);
+	cudaMemcpy(device_matrix_B.elements, res.elements, size_B, cudaMemcpyHostToDevice);
+
+	dim3 threadsPerBlock(cols, rows);
+	dim3 numBlocks(1, 1);
+	saddWithCuda <<<numBlocks, threadsPerBlock >>> (device_matrix_A, device_matrix_B, scalar);
+	cudaDeviceSynchronize();
+
+	cudaMemcpy(res.elements, device_matrix_B.elements, size_B, cudaMemcpyDeviceToHost);
+	cudaFree(device_matrix_A.elements);
+	cudaFree(device_matrix_B.elements);
+
+	return res;
+}
+
 //Helper function to add two mats together
 CMatrix add_cuda(CMatrix mat1, CMatrix mat2) {
 	int row1 = mat1.height;
@@ -275,7 +308,7 @@ CMatrix add_cuda(CMatrix mat1, CMatrix mat2) {
 	int col2 = mat2.width;
 
 	if (col1 != col2 && row1 != row2)
-		throw std::invalid_argument("Columns/rows of matrix 1 do not equal the columns/rows of matrix 2.");
+		throw std::runtime_error("Columns/rows of matrix 1 do not equal the columns/rows of matrix 2.");
 
 	CMatrix res = createCMatrix(row1, col1);
 
@@ -318,7 +351,7 @@ CMatrix subtract_cuda(CMatrix mat1, CMatrix mat2) {
 	int col2 = mat2.width;
 
 	if (col1 != col2 && row1 != row2)
-		throw std::invalid_argument("Columns/rows of matrix 1 do not equal the columns/rows of matrix 2.");
+		throw std::runtime_error("Columns/rows of matrix 1 do not equal the columns/rows of matrix 2.");
 
 	CMatrix res = createCMatrix(row1, col1);
 
@@ -491,7 +524,7 @@ CMatrix computeLossMatrix_cuda(CMatrix computedMatrix, CMatrix expectedMatrix) {
 	int col = computedMatrix.width;
 
 	if (expectedMatrix.height != row && expectedMatrix.width != col)
-		throw std::invalid_argument("Matricies are not of equal size");
+		throw std::runtime_error("Matricies are not of equal size");
 
 	CMatrix res = createCMatrix(row, col);
 
