@@ -1,4 +1,9 @@
+#pragma once 
 #include "CMatrix.cuh"
+#include <random>
+#include <chrono>
+#include <algorithm>
+#include <iostream>
 
 enum class ActivationFunctionE {
     Sigmoid,

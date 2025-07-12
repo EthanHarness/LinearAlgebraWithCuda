@@ -1,6 +1,11 @@
 ﻿#include "NeuralNetwork.cuh"
+#include "CMatrix.cuh"
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <vector>
+#include <sstream>
 #include <chrono>
-#include <ctime>
 
 void helperFunction(NeuralNetwork network, CMatrix inputNodes);
 void CudaVNonCuda();

@@ -1,22 +1,10 @@
-#include <cstdlib>
+#pragma once 
+#include "cuda_runtime.h"
+#include "device_launch_parameters.h"
+#include <stdexcept>
 #include <iostream>
 #include <stdio.h>
 #include <functional>
-#include <stdexcept>
-#include <fstream>
-#include <string>
-#include <vector>
-#include <sstream>
-#include <cmath>
-#include <algorithm>
-#include <cstdlib>
-#include <random>
-#include <chrono>
-#include <utility>
-#include "cuda_runtime.h"
-#include "device_launch_parameters.h"
-#include <chrono>
-#include <ctime>
 
 typedef struct {
     int width;
