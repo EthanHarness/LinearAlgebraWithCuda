@@ -38,38 +38,25 @@ NeuralNetwork::NeuralNetwork(int layers[], int size) {
 //DOES NOT MODIFY OR ADJUST THOSE WEIGHTS AND BIASES.
 CMatrix NeuralNetwork::processInput(CMatrix inputNodes) {
 	using namespace std;
-	CMatrix temp1, temp2, temp3, res;
-	temp1 = inputNodes;
-	std::cout << "Size of input layer : " << temp1.height << "x" << temp1.width << "\n";
-	for (int i = 0; i < networkSize; i++, temp1 = res) {
-
-		std::cout << "Size of Layer " << i << " Weights is : " << weightsArray[i].height << "x" << weightsArray[i].width << "\n";
-		std::cout << "Size of Layer " << i << " Biasies is : " << biasArray[i].height << "x" << biasArray[i].width << "\n";
-		
-		temp2 = multiply_cuda(weightsArray[i], temp1);
-		temp3 = add_cuda(temp2, biasArray[i]);
+	CMatrix res = inputNodes;
+	for (int i = 0; i < networkSize; i++) {
+		res = add_cuda(multiply_cuda(weightsArray[i], res), biasArray[i]);
 
 		switch (activationFunctions[i]) {
 			case ActivationFunctionE::Sigmoid:
-				res = sigmoid_cuda(temp3);
+				res = sigmoid_cuda(res);
 				break;
 			case ActivationFunctionE::Tanh:
-				res = tanh_cuda(temp3);
+				res = tanh_cuda(res);
 				break;
 			case ActivationFunctionE::Relu:
-				res = relu_cuda(temp3);
+				res = relu_cuda(res);
 				break;
 			case ActivationFunctionE::Unknown:
 				throw std::invalid_argument("Unknown activation function found at activationFunctions " + std::to_string(i));
 			default:
 				throw std::invalid_argument("Unknown activation function found at activationFunctions " + std::to_string(i));
 		}
-
-		std::cout << "\n";
-
-		freeCMatrix(temp1);
-		freeCMatrix(temp2);
-		freeCMatrix(temp3);
 	}
 
 	return res;
@@ -150,7 +137,7 @@ void NeuralNetwork::updateMiniBatch(std::vector<std::pair<CMatrix, int>> miniBat
 	}
 }
 
-//WIP (need to implement a transpose function in CMatrix)
+//Implements back prop algo
 std::pair<std::vector<CMatrix>, std::vector<CMatrix>> NeuralNetwork::backprop(CMatrix networkInput, int expectedInputsOutput) {
 	std::vector<CMatrix> nabla_b;
 	std::vector<CMatrix> nabla_w;
@@ -184,13 +171,22 @@ std::pair<std::vector<CMatrix>, std::vector<CMatrix>> NeuralNetwork::backprop(CM
 
 	CMatrix delta = multiply_cuda(sadd_cuda(computedLayerFinalResult.back(), (expectedInputsOutput*-1)), sigmoid_prime_cuda(computedLayerIntermediateResult.back()));
 	nabla_b.back() = delta;
-	//nabla_w.back() = multiply_cuda(delta, transpose_cuda(computedLayerFinalResult[computedLayerFinalResult.size()-2]))
-
+	nabla_w.back() = multiply_cuda(delta, transpose_cuda(computedLayerFinalResult[computedLayerFinalResult.size()-2]));
+	return std::pair<std::vector<CMatrix>, std::vector<CMatrix>>{nabla_b, nabla_w};
 }
 
-//WIP No progress done
-int NeuralNetwork::evaluate(std::vector<std::pair<CMatrix, int>>) {
-	return 0;
+//Evaluates the accuracy of the network
+int NeuralNetwork::evaluate(std::vector<std::pair<CMatrix, int>> test_data) {
+	
+	std::vector<std::pair<int, int>> results;
+	int sum = 0;
+	for (auto [inputNodes, expectedOutput] : test_data) {
+		results.push_back(std::pair<int, int>{getArgmax(processInput(inputNodes)), expectedOutput});
+	}
+	for (auto [computed, realResult] : results) {
+		if (computed == realResult) sum++;
+	} 
+	return sum;
 }
 
 //Converts a string of our activation function to an enum ActivationFunctionE 

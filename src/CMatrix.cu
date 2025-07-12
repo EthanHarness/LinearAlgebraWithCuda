@@ -67,7 +67,14 @@ __global__ void squareDiffWithCuda(CMatrix A, CMatrix B, CMatrix C) {
 	C.elements[row * C.width + col] = pow(diff, 2);
 }
 
+//A_t=B
+__global__ void transposeWithCuda(CMatrix A, CMatrix B) {
+	int row = blockIdx.y * blockDim.y + threadIdx.y;
+	int col = blockIdx.x * blockDim.x + threadIdx.x;
+	B.elements[col * B.width + row] = A.elements[row * A.width + col];
+}
 
+//sigmoid'(A)=B
 __global__ void sigPrimeWithCuda(CMatrix A, CMatrix B) {
 	int row = blockIdx.y * blockDim.y + threadIdx.y;
 	int col = blockIdx.x * blockDim.x + threadIdx.x;
@@ -173,9 +180,15 @@ CMatrix CMatrixMultiply(CMatrix mat1, CMatrix mat2) {
 //Gets the max element in a matrix
 double getMax(CMatrix mat) {
 	double max = mat.elements[0];
-	for (int j = 1; j < mat.width; j++) {
-		max = mat.elements[mat.width + j] > max ? mat.elements[mat.width + j] : max;
+	for (int row = 0; row < mat.height; row++)
+	{
+		for (int col = 0; col < mat.width; col++) {
+			if (mat.elements[row * mat.width + col] > max) {
+				max = mat.elements[row * mat.width + col];
+			}
+		}
 	}
+	
 	return max;
 }
 
@@ -187,6 +200,22 @@ double getMax(CMatrix mat, int row) {
 		max = mat.elements[row * mat.width + j] > max ? mat.elements[row * mat.width + j] : max;
 	}
 	return max;
+}
+
+int getArgmax(CMatrix mat) {
+	double max = mat.elements[0];
+	int index = 0;
+	for (int row = 0; row < mat.height; row++)
+	{
+		for (int col = 0; col < mat.width; col++) {
+			if (mat.elements[row * mat.width + col] > max) {
+				max = mat.elements[row * mat.width + col];
+				index = row * mat.width + col;
+			}
+		}
+	}
+
+	return index;
 }
 
 //Helper function to multiply two matricies together
@@ -509,6 +538,38 @@ CMatrix tanh_cuda(CMatrix mat1) {
 	dim3 threadsPerBlock(col, row);
 	dim3 numBlocks(1, 1);
 	tanhWithCuda <<<numBlocks, threadsPerBlock >>> (device_matrix_A, device_matrix_B);
+	cudaDeviceSynchronize();
+
+	cudaMemcpy(res.elements, device_matrix_B.elements, size_B, cudaMemcpyDeviceToHost);
+	cudaFree(device_matrix_A.elements);
+	cudaFree(device_matrix_B.elements);
+
+	return res;
+}
+
+CMatrix transpose_cuda(CMatrix matA) {
+	int newMatRows = matA.width;
+	int newMatCols = matA.height;
+
+	CMatrix res = createCMatrix(newMatRows, newMatCols);
+
+	CMatrix device_matrix_A;
+	CMatrix device_matrix_B;
+
+	device_matrix_A.width = matA.width;device_matrix_A.height = matA.height;
+	device_matrix_B.width = res.width;device_matrix_B.height = res.height;
+
+	size_t size_A = matA.width * matA.height * sizeof(double);
+	size_t size_B = res.width * res.height * sizeof(double);
+
+	cudaMalloc(&device_matrix_A.elements, size_A);
+	cudaMemcpy(device_matrix_A.elements, matA.elements, size_A, cudaMemcpyHostToDevice);
+	cudaMalloc(&device_matrix_B.elements, size_B);
+	cudaMemcpy(device_matrix_B.elements, res.elements, size_B, cudaMemcpyHostToDevice);
+
+	dim3 threadsPerBlock(matA.width, matA.height);
+	dim3 numBlocks(1, 1);
+	transposeWithCuda <<<numBlocks, threadsPerBlock >>> (device_matrix_A, device_matrix_B);
 	cudaDeviceSynchronize();
 
 	cudaMemcpy(res.elements, device_matrix_B.elements, size_B, cudaMemcpyDeviceToHost);

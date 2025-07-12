@@ -52,8 +52,6 @@ int main() {
     printCMatrix(error);
     std::cout << "\n";
 
-
-
     return 0;
 }
 

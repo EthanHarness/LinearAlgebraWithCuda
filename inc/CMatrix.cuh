@@ -20,6 +20,7 @@ CMatrix CMatrixSMultiply(CMatrix mat, double scalar);
 CMatrix CMatrixMultiply(CMatrix mat1, CMatrix mat2);
 double getMax(CMatrix mat);
 double getMax(CMatrix mat, int row);
+int getArgmax(CMatrix);
 void freeCMatrix(CMatrix &matrix);
 
 CMatrix smultiply_cuda(CMatrix mat, double scalar);
@@ -31,4 +32,5 @@ CMatrix sigmoid_cuda(CMatrix mat1);
 CMatrix sigmoid_prime_cuda(CMatrix mat1);
 CMatrix tanh_cuda(CMatrix mat1);
 CMatrix relu_cuda(CMatrix mat1);
+CMatrix transpose_cuda(CMatrix mat1);
 CMatrix computeLossMatrix_cuda(CMatrix computedMatrix, CMatrix expectedMatrix);
