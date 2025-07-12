@@ -2,15 +2,13 @@
 #include <chrono>
 #include <ctime>
 
-#define ITERATIONS 10
-
 void helperFunction(NeuralNetwork network, CMatrix inputNodes);
 void CudaVNonCuda();
 std::vector<std::pair<CMatrix, int>> readTestData();
 std::vector<std::pair<CMatrix, int>> readTrainingData();
 
 int main() {
-    //CudaVNonCuda();
+    CudaVNonCuda();
 
     //Takes in mnist training sets
     std::vector<std::pair<CMatrix, int>> testData = readTestData();
@@ -22,7 +20,10 @@ int main() {
     10 neurons layer 2 with again 10x10 weights total
     Final layer holds output information. We are choosing 1 out of 10 outputs
     */
-    int networkStructure[] = {784, 10, 10};
+    const int layer1 = 784;
+    const int layer2 = 10;
+    const int layer3 = 10;
+    int networkStructure[] = {layer1, layer2, layer3};
     NeuralNetwork network = NeuralNetwork(networkStructure, 3);
     
 
@@ -88,6 +89,8 @@ void CudaVNonCuda() {
     std::function<double(int, int)> foo; 
     std::function<double(int, int)> foo1;
     std::function<double(int, int)> foo2;
+    const int iterations = 20;
+    const int matrix_scale_factor = 10;
 
     foo = [](int x, int y) {
         return (double)((x * x) + y);
@@ -111,10 +114,11 @@ void CudaVNonCuda() {
 
     std::cout << "Mat 3" << std::endl;
     printCMatrix(CMatrixObj2);
+    std::cout << "\n" << std::endl;
 
 
     //This does a bunch of Matrix multiplications.
-    for(int i = 0; i < ITERATIONS*10; i+=10) {
+    for(int i = 1; i < iterations*matrix_scale_factor; i+=10) {
         std::cout << "Iteration : " << i/10 << std::endl;
         std::cout << "Size of Matrix's are : " << i << "x" << i << std::endl;
         CMatrix m1 = createCMatrix(i, i);
@@ -124,11 +128,16 @@ void CudaVNonCuda() {
 
         clock_t now = clock();
         CMatrix m3 = CMatrixMultiply(m1, m2);
-        std::cout << "TIME: " << clock() - now << std::endl;
+        std::cout << "TIME Normal Mult: " << clock() - now << std::endl;
             
         now = clock();
         CMatrix m4 = multiply_cuda(m1, m2);
-        std::cout << "TIME : " << clock() - now << std::endl << std::endl;
+        std::cout << "TIME CUDA Mult : " << clock() - now << std::endl << std::endl;
+
+        freeCMatrix(m1);
+        freeCMatrix(m2);
+        freeCMatrix(m3);
+        freeCMatrix(m4);
    }
 }
 
