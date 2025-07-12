@@ -72,16 +72,87 @@ void NeuralNetwork::stochasticGradDescent(std::vector<std::pair<CMatrix, int>> t
 	int n = trainingData.size();
 	for(int j = 0; j < epochs; j++) {
 
-		//Shuffle training data
 		std::shuffle(trainingData.begin(), trainingData.end(), g);
 		
 		std::vector<std::vector<std::pair<CMatrix, int>>> miniBatches;
 		for(int k = 0; k < n; k += miniBatchSize) {
 			int end = std::min(k+miniBatchSize, n);
-			std::vector<std::pair<CMatrix, int>> miniBatch(trainingData.begin() + k, trainingData.end() + end);
+			std::vector<std::pair<CMatrix, int>> miniBatch(trainingData.begin() + k, trainingData.begin() + end);
 			miniBatches.push_back(miniBatch);
 		}
+
+		for (auto batch : miniBatches) {
+			updateMiniBatch(batch, learningRate);
+		}
+
+		std::cout << "Epoch " << j << ": " << evaluate(testData) << " / " << testData.size() << "\n";
 	}
+}
+
+void NeuralNetwork::updateMiniBatch(std::vector<std::pair<CMatrix, int>> miniBatch, double learningRate) {
+	std::function<double(int, int)> zeroFunc = [](int x, int y) {
+		return 0;
+	};
+
+	std::vector<CMatrix> nabla_b;
+	for (auto bias : biasArray) {
+		CMatrix t = createCMatrix(bias.height, bias.width);
+		setCMatrix(zeroFunc, t); 
+		nabla_b.push_back(t);
+	}
+	std::vector<CMatrix> nabla_w;
+	for (auto weights : weightsArray) {
+		CMatrix t = createCMatrix(weights.height, weights.width);
+		setCMatrix(zeroFunc, t); 
+		nabla_b.push_back(t);
+	}
+
+	for (auto io : miniBatch) {
+		CMatrix input = io.first;
+		int expectedOutput = io.second;
+		auto output = backprop(input, expectedOutput);
+		std::vector<CMatrix> delta_nabla_b = output.first;
+		std::vector<CMatrix> delta_nabla_w = output.second;
+
+		if (nabla_b.front().height != delta_nabla_b.front().height || nabla_b.front().width != delta_nabla_b.front().width || 
+			nabla_w.front().height != delta_nabla_w.front().height || nabla_w.front().width != delta_nabla_w.front().width)
+			std::cerr << "Somehow someway one of the delta arrays is not equivalent to its corresponding nabla array\n";
+
+		for (int i = 0; i < nabla_b.size(); i++) {
+			CMatrix t = add_cuda(nabla_b[i], delta_nabla_b[i]);
+			nabla_b[i] = t;
+		}
+		for (int i = 0; i < nabla_w.size(); i++) {
+			CMatrix t = add_cuda(nabla_w[i], delta_nabla_w[i]);
+			nabla_w[i] = t;
+		}
+	}
+
+	if (nabla_b.front().height != biasArray.front().height || nabla_b.front().width != biasArray.front().width || 
+			nabla_w.front().height != weightsArray.front().height || nabla_w.front().width != weightsArray.front().width)
+			std::cerr << "Somehow someway one of the nabla arrays is not equivalent to its corresponding original array\n";
+
+	const double scalar = learningRate/miniBatch.size();
+	for (int i = 0; i < weightsArray.size(); i++) {
+		weightsArray[i] = subtract_cuda(weightsArray[i], smultiply_cuda(nabla_w[i], scalar));
+	}
+	for (int i = 0; i < biasArray.size(); i++) {
+		biasArray[i] = subtract_cuda(biasArray[i], smultiply_cuda(nabla_b[i], scalar));
+	}
+}
+
+//WIP No progress done
+std::pair<std::vector<CMatrix>, std::vector<CMatrix>> NeuralNetwork::backprop(CMatrix networkInput, int expectedInputsOutput) {
+	std::vector<CMatrix> vec1; 
+	vec1.push_back(createCMatrix(1,1));
+	std::vector<CMatrix> vec2;
+	vec2.push_back(createCMatrix(1,1));
+	return std::pair<std::vector<CMatrix>, std::vector<CMatrix>>(vec1, vec2);
+}
+
+//WIP No progress done
+int NeuralNetwork::evaluate(std::vector<std::pair<CMatrix, int>>) {
+	return 0;
 }
 
 //Converts a string of our activation function to an enum ActivationFunctionE 

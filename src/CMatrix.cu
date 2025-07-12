@@ -32,6 +32,12 @@ __global__ void addWithCuda(CMatrix A, CMatrix B, CMatrix C) {
 	C.elements[row * C.width + col] = A.elements[row * A.width + col] + B.elements[row * B.width + col];
 };
 
+__global__ void subWithCuda(CMatrix A, CMatrix B, CMatrix C) {
+	int row = blockIdx.y * blockDim.y + threadIdx.y;
+	int col = blockIdx.x * blockDim.x + threadIdx.x;
+	C.elements[row * C.width + col] = A.elements[row * A.width + col] - B.elements[row * B.width + col];
+};
+
 //sigmoid(A)=B
 __global__ void sigmoidWithCuda(CMatrix A, CMatrix B) {
 	int row = blockIdx.y * blockDim.y + threadIdx.y;
@@ -295,6 +301,49 @@ CMatrix add_cuda(CMatrix mat1, CMatrix mat2) {
 	dim3 threadsPerBlock(col2, row1);
 	dim3 numBlocks(1, 1);
 	addWithCuda <<<numBlocks, threadsPerBlock >>> (device_matrix_A, device_matrix_B, device_matrix_C);
+	cudaDeviceSynchronize();
+
+	cudaMemcpy(res.elements, device_matrix_C.elements, size_C, cudaMemcpyDeviceToHost);
+	cudaFree(device_matrix_A.elements);
+	cudaFree(device_matrix_B.elements);
+	cudaFree(device_matrix_C.elements);
+
+	return res;
+}
+
+CMatrix subtract_cuda(CMatrix mat1, CMatrix mat2) {
+	int row1 = mat1.height;
+	int row2 = mat2.height;
+	int col1 = mat1.width;
+	int col2 = mat2.width;
+
+	if (col1 != col2 && row1 != row2)
+		throw std::invalid_argument("Columns/rows of matrix 1 do not equal the columns/rows of matrix 2.");
+
+	CMatrix res = createCMatrix(row1, col1);
+
+	CMatrix device_matrix_A;
+	CMatrix device_matrix_B;
+	CMatrix device_matrix_C;
+	
+	device_matrix_A.width = mat1.width;device_matrix_A.height = mat1.height;
+	device_matrix_B.width = mat2.width;device_matrix_B.height = mat2.height;
+	device_matrix_C.width = res.width;device_matrix_C.height = res.height;
+	
+	size_t size_A = mat1.width * mat1.height * sizeof(double);
+	size_t size_B = mat2.width * mat2.height * sizeof(double);
+	size_t size_C = res.width * res.height * sizeof(double);
+
+	cudaMalloc(&device_matrix_A.elements, size_A);
+	cudaMemcpy(device_matrix_A.elements, mat1.elements, size_A, cudaMemcpyHostToDevice);
+	cudaMalloc(&device_matrix_B.elements, size_B);
+	cudaMemcpy(device_matrix_B.elements, mat2.elements, size_B, cudaMemcpyHostToDevice);
+	cudaMalloc(&device_matrix_C.elements, size_C);
+	cudaMemcpy(device_matrix_C.elements, res.elements, size_C, cudaMemcpyHostToDevice);
+
+	dim3 threadsPerBlock(col2, row1);
+	dim3 numBlocks(1, 1);
+	subWithCuda <<<numBlocks, threadsPerBlock >>> (device_matrix_A, device_matrix_B, device_matrix_C);
 	cudaDeviceSynchronize();
 
 	cudaMemcpy(res.elements, device_matrix_C.elements, size_C, cudaMemcpyDeviceToHost);

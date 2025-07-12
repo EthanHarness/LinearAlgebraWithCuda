@@ -25,6 +25,7 @@ void freeCMatrix(CMatrix &matrix);
 CMatrix multiply_cuda(CMatrix mat1, CMatrix mat2);
 CMatrix smultiply_cuda(CMatrix mat, double scalar);
 CMatrix add_cuda(CMatrix mat1, CMatrix mat2);
+CMatrix subtract_cuda(CMatrix mat1, CMatrix mat2);
 CMatrix sigmoid_cuda(CMatrix mat1);
 CMatrix sigmoid_prime_cuda(CMatrix mat1);
 CMatrix tanh_cuda(CMatrix mat1);
