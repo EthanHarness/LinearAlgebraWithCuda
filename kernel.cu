@@ -13,7 +13,7 @@ std::vector<std::pair<CMatrix, int>> readTestData();
 std::vector<std::pair<CMatrix, int>> readTrainingData();
 
 int main() {
-    CudaVNonCuda();
+    //CudaVNonCuda();
 
     //Takes in mnist training sets
     std::vector<std::pair<CMatrix, int>> testData = readTestData();
@@ -41,15 +41,15 @@ int main() {
 
     std::cout << "Known Matrix\n";
     printCMatrix(knownMatrix);
-    std::cout << "\n\n\n";
+    std::cout << "\n";
 
     std::cout << "Predicted\n";
     printCMatrix(outputLayer);
-    std::cout << "\n\n\n";
+    std::cout << "\n";
 
     std::cout << "Squared Diff(Error)\n";
     printCMatrix(error);
-    std::cout << "\n\n\n";
+    std::cout << "\n";
 
 
 

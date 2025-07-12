@@ -4,10 +4,11 @@
 //each value in the array is the size of the corresponding hidden layer
 //first value is the size of the input layer. We will not be setting anything for the first layer since its the input. 
 NeuralNetwork::NeuralNetwork(int layers[], int size) {
-	const double normal_distribution_mean = 255.0;
+	const double variance = 1;
+	const ActivationFunctionE temporaryActivationFunctionConstant = ActivationFunctionE::Sigmoid;
 	auto seed = std::chrono::system_clock::now().time_since_epoch().count();
 	std::default_random_engine generator(seed);
-	std::normal_distribution<double> distribution(0, normal_distribution_mean);
+	std::normal_distribution<double> distribution(0, variance);
 
 	std::function<double(int, int)> randomNumberGeneratorFunction;
 	randomNumberGeneratorFunction = [generator, distribution](int x, int y) mutable {
@@ -18,19 +19,18 @@ NeuralNetwork::NeuralNetwork(int layers[], int size) {
 	for (int i = 1; i < size; i++) {
 		CMatrix weights = createCMatrix(layers[i - 1], layers[i]);
 		CMatrix bias = createCMatrix(1, layers[i]);
-		std::string activate = "sigmoid";
 		setCMatrix(randomNumberGeneratorFunction, weights);
 		setCMatrix(randomNumberGeneratorFunction, bias);
 
 		weightsArray.push_back(weights);
 		biasArray.push_back(bias);
-		activationFunctions.push_back(activate);
+		activationFunctions.push_back(temporaryActivationFunctionConstant);
 	}
 
 	networkSize = size - 1;
 }
 
-//Returns the output layer
+//Returns the output layer based off the network
 CMatrix NeuralNetwork::processInput(CMatrix inputNodes) {
 	using namespace std;
 	CMatrix temp1, temp2, temp3, res;
@@ -40,8 +40,7 @@ CMatrix NeuralNetwork::processInput(CMatrix inputNodes) {
 		temp2 = multiply_cuda(temp1, weightsArray[i]);
 		temp3 = add_cuda(temp2, biasArray[i]);
 
-		ActivationFunctionE func = stringToActivationFunction(activationFunctions[i]);
-		switch (func) {
+		switch (activationFunctions[i]) {
 			case ActivationFunctionE::Sigmoid:
 				res = sigmoid_cuda(temp3);
 				break;
@@ -51,6 +50,8 @@ CMatrix NeuralNetwork::processInput(CMatrix inputNodes) {
 			case ActivationFunctionE::Relu:
 				res = relu_cuda(temp3);
 				break;
+			case ActivationFunctionE::Unknown:
+				throw std::invalid_argument("Unknown activation function found at activationFunctions " + std::to_string(i));
 			default:
 				throw std::invalid_argument("Unknown activation function found at activationFunctions " + std::to_string(i));
 		}
@@ -64,7 +65,7 @@ CMatrix NeuralNetwork::processInput(CMatrix inputNodes) {
 }
 
 //Work in progress
-void NeuralNetwork::stochasticGradDescent(std::vector<CMatrix> trainingData, int epochs, int miniBatchSize, double learningRate, std::vector<CMatrix> testData) {
+void NeuralNetwork::stochasticGradDescent(std::vector<std::pair<CMatrix, int>> trainingData, int epochs, int miniBatchSize, double learningRate, std::vector<std::pair<CMatrix, int>> testData) {
 	std::random_device rd;
 	std::mt19937 g(rd());
 
@@ -74,16 +75,13 @@ void NeuralNetwork::stochasticGradDescent(std::vector<CMatrix> trainingData, int
 		//Shuffle training data
 		std::shuffle(trainingData.begin(), trainingData.end(), g);
 		
-		std::vector<std::vector<CMatrix>> miniBatches;
+		std::vector<std::vector<std::pair<CMatrix, int>>> miniBatches;
 		for(int k = 0; k < n; k += miniBatchSize) {
 			int end = std::min(k+miniBatchSize, n);
-			std::vector<CMatrix> miniBatch(trainingData.begin() + k, trainingData.end() + end);
+			std::vector<std::pair<CMatrix, int>> miniBatch(trainingData.begin() + k, trainingData.end() + end);
 			miniBatches.push_back(miniBatch);
 		}
-
 	}
-
-
 }
 
 //Converts a string of our activation function to an enum ActivationFunctionE 
