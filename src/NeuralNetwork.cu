@@ -1,18 +1,19 @@
 #include "NeuralNetwork.cuh"
 
 const std::function<double(int, int)> zeroFunc = [](int x, int y) {
-		return 0;
-	};
+	return 0;
+};
 
 //takes in an array of ints and the size of the array
 //each value in the array is the size of the corresponding hidden layer
 //first value is the size of the input layer. We will not be setting anything for the first layer since its the input. 
 NeuralNetwork::NeuralNetwork(int layers[], int size) {
 	const double variance = 1;
+	const double mean = 0;
 	const ActivationFunctionE temporaryActivationFunctionConstant = ActivationFunctionE::Sigmoid;
 	auto seed = std::chrono::system_clock::now().time_since_epoch().count();
 	std::default_random_engine generator(seed);
-	std::normal_distribution<double> distribution(0, variance);
+	std::normal_distribution<double> distribution(mean, variance);
 
 	std::function<double(int, int)> randomNumberGeneratorFunction;
 	randomNumberGeneratorFunction = [generator, distribution](int x, int y) mutable {
@@ -62,29 +63,60 @@ CMatrix NeuralNetwork::processInput(CMatrix inputNodes) {
 	return res;
 }
 
-//Performs stochastic gradient descent to train the neural network
-void NeuralNetwork::stochasticGradDescent(std::vector<std::pair<CMatrix, int>> trainingData, int epochs, int miniBatchSize, double learningRate, std::vector<std::pair<CMatrix, int>> testData) {
-	std::random_device rd;
-	std::mt19937 g(rd());
-
-	int n = trainingData.size();
-	for(int j = 0; j < epochs; j++) {
-
-		std::shuffle(trainingData.begin(), trainingData.end(), g);
-		
-		std::vector<std::vector<std::pair<CMatrix, int>>> miniBatches;
-		for(int k = 0; k < n; k += miniBatchSize) {
-			int end = std::min(k+miniBatchSize, n);
-			std::vector<std::pair<CMatrix, int>> miniBatch(trainingData.begin() + k, trainingData.begin() + end);
-			miniBatches.push_back(miniBatch);
-		}
-
-		for (auto batch : miniBatches) {
-			updateMiniBatch(batch, learningRate);
-		}
-
-		std::cout << "Epoch " << j << ": " << evaluate(testData) << " / " << testData.size() << "\n";
+//Evaluates the accuracy of the network
+int NeuralNetwork::evaluate(std::vector<std::pair<CMatrix, int>> test_data) {
+	
+	std::vector<std::pair<int, int>> results;
+	int sum = 0;
+	for (auto twoTuple : test_data) {
+		CMatrix inputNodes = twoTuple.first;
+		int expectedOutput = twoTuple.second;
+		results.push_back(std::pair<int, int>{getArgmax(processInput(inputNodes)), expectedOutput});
 	}
+	for (auto twoTuple : results) {
+		int computed = twoTuple.first;
+		int realResult = twoTuple.second;
+		if (computed == realResult) sum++;
+	} 
+	return sum;
+}
+
+//Implements back prop algo
+std::pair<std::vector<CMatrix>, std::vector<CMatrix>> NeuralNetwork::backprop(CMatrix networkInput, int expectedInputsOutput) {
+	std::vector<CMatrix> nabla_b;
+	std::vector<CMatrix> nabla_w;
+	for (auto bias : biasArray) {
+		CMatrix t = createCMatrix(bias.height, bias.width);
+		setCMatrix(zeroFunc, t); 
+		nabla_b.push_back(t);
+	}
+	for (auto weights : weightsArray) {
+		CMatrix t = createCMatrix(weights.height, weights.width);
+		setCMatrix(zeroFunc, t); 
+		nabla_w.push_back(t);
+	}
+
+	CMatrix currentLayerActivation = networkInput; 
+	std::vector<CMatrix> computedLayerFinalResult{networkInput}; //Also contains first layer
+	std::vector<CMatrix> computedLayerIntermediateResult;
+	for (int i = 0; i < biasArray.size(); i++) {
+		if (biasArray[i].height != weightsArray[i].height) {
+			std::ostringstream oss;
+			oss << "Somehow someway the bias array in layer " << i << " does not match the weights array";
+			std::string errorMsg = oss.str();
+			throw std::runtime_error(errorMsg);
+		}
+		
+		CMatrix intermediate = add_cuda(multiply_cuda(weightsArray[i], currentLayerActivation), biasArray[i]);
+		computedLayerIntermediateResult.push_back(intermediate);
+		currentLayerActivation = sigmoid_cuda(intermediate);
+		computedLayerFinalResult.push_back(currentLayerActivation);
+	}
+
+	CMatrix delta = multiply_cuda(sadd_cuda(computedLayerFinalResult.back(), (expectedInputsOutput*-1)), sigmoid_prime_cuda(computedLayerIntermediateResult.back()));
+	nabla_b.back() = delta;
+	nabla_w.back() = multiply_cuda(delta, transpose_cuda(computedLayerFinalResult[computedLayerFinalResult.size()-2]));
+	return std::pair<std::vector<CMatrix>, std::vector<CMatrix>>{nabla_b, nabla_w};
 }
 
 //This function updates the weights and biasies according to the output of the backprop algo
@@ -100,7 +132,7 @@ void NeuralNetwork::updateMiniBatch(std::vector<std::pair<CMatrix, int>> miniBat
 	for (auto weights : weightsArray) {
 		CMatrix t = createCMatrix(weights.height, weights.width);
 		setCMatrix(zeroFunc, t); 
-		nabla_b.push_back(t);
+		nabla_w.push_back(t);
 	}
 
 	for (auto io : miniBatch) {
@@ -137,56 +169,29 @@ void NeuralNetwork::updateMiniBatch(std::vector<std::pair<CMatrix, int>> miniBat
 	}
 }
 
-//Implements back prop algo
-std::pair<std::vector<CMatrix>, std::vector<CMatrix>> NeuralNetwork::backprop(CMatrix networkInput, int expectedInputsOutput) {
-	std::vector<CMatrix> nabla_b;
-	std::vector<CMatrix> nabla_w;
-	for (auto bias : biasArray) {
-		CMatrix t = createCMatrix(bias.height, bias.width);
-		setCMatrix(zeroFunc, t); 
-		nabla_b.push_back(t);
-	}
-	for (auto weights : weightsArray) {
-		CMatrix t = createCMatrix(weights.height, weights.width);
-		setCMatrix(zeroFunc, t); 
-		nabla_b.push_back(t);
-	}
+//Performs stochastic gradient descent to train the neural network
+void NeuralNetwork::stochasticGradDescent(std::vector<std::pair<CMatrix, int>> trainingData, int epochs, int miniBatchSize, double learningRate, std::vector<std::pair<CMatrix, int>> testData) {
+	std::random_device rd;
+	std::mt19937 g(rd());
 
-	CMatrix currentLayerActivation = networkInput; 
-	std::vector<CMatrix> computedLayerFinalResult{networkInput}; //Also contains first layer
-	std::vector<CMatrix> computedLayerIntermediateResult;
-	for (int i = 0; i < biasArray.size(); i++) {
-		if (biasArray[i].height != weightsArray[i].height || biasArray[i].width != weightsArray[i].width) {
-			std::ostringstream oss;
-			oss << "Somehow someway the bias array in layer " << i << " does not match the weights array";
-			std::string errorMsg = oss.str();
-			throw std::runtime_error(errorMsg);
-		}
+	int n = trainingData.size();
+	for(int j = 0; j < epochs; j++) {
+
+		std::shuffle(trainingData.begin(), trainingData.end(), g);
 		
-		CMatrix intermediate = add_cuda(multiply_cuda(weightsArray[i], currentLayerActivation), biasArray[i]);
-		computedLayerIntermediateResult.push_back(intermediate);
-		currentLayerActivation = sigmoid_cuda(intermediate);
-		computedLayerFinalResult.push_back(currentLayerActivation);
-	}
+		std::vector<std::vector<std::pair<CMatrix, int>>> miniBatches;
+		for(int k = 0; k < n; k += miniBatchSize) {
+			int end = std::min(k+miniBatchSize, n);
+			std::vector<std::pair<CMatrix, int>> miniBatch(trainingData.begin() + k, trainingData.begin() + end);
+			miniBatches.push_back(miniBatch);
+		}
 
-	CMatrix delta = multiply_cuda(sadd_cuda(computedLayerFinalResult.back(), (expectedInputsOutput*-1)), sigmoid_prime_cuda(computedLayerIntermediateResult.back()));
-	nabla_b.back() = delta;
-	nabla_w.back() = multiply_cuda(delta, transpose_cuda(computedLayerFinalResult[computedLayerFinalResult.size()-2]));
-	return std::pair<std::vector<CMatrix>, std::vector<CMatrix>>{nabla_b, nabla_w};
-}
+		for (auto batch : miniBatches) {
+			updateMiniBatch(batch, learningRate);
+		}
 
-//Evaluates the accuracy of the network
-int NeuralNetwork::evaluate(std::vector<std::pair<CMatrix, int>> test_data) {
-	
-	std::vector<std::pair<int, int>> results;
-	int sum = 0;
-	for (auto [inputNodes, expectedOutput] : test_data) {
-		results.push_back(std::pair<int, int>{getArgmax(processInput(inputNodes)), expectedOutput});
+		std::cout << "Epoch " << j << ": " << evaluate(testData) << " / " << testData.size() << "\n";
 	}
-	for (auto [computed, realResult] : results) {
-		if (computed == realResult) sum++;
-	} 
-	return sum;
 }
 
 //Converts a string of our activation function to an enum ActivationFunctionE 

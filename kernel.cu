@@ -7,6 +7,8 @@
 #include <sstream>
 #include <chrono>
 #include <stdexcept>
+#include "cuda_runtime.h"
+#include "device_launch_parameters.h"
 
 void helperFunction(NeuralNetwork network, CMatrix inputNodes);
 void CudaVNonCuda();
@@ -14,11 +16,11 @@ std::vector<std::pair<CMatrix, int>> readTestData();
 std::vector<std::pair<CMatrix, int>> readTrainingData();
 
 int main() {
-    //CudaVNonCuda();
-
     //Takes in mnist training sets
     std::vector<std::pair<CMatrix, int>> testData = readTestData();
     std::vector<std::pair<CMatrix, int>> trainData = readTrainingData();
+    std::cout << "Train Data samples: " << trainData.size() << "\n";
+    std::cout << "Test Data samples: " << testData.size() << "\n";
 
     /*
     Initializes network strucutre. 
@@ -29,30 +31,19 @@ int main() {
     const int layer1 = 784;
     const int layer2 = 10;
     const int layer3 = 10;
+    const int epochs = 100;
+    const int batchSize = 3000;
+    const double learningRate = .05;
     int networkStructure[] = {layer1, layer2, layer3};
     NeuralNetwork network = NeuralNetwork(networkStructure, 3);
-    
-
-    //helperFunction(network, testData[0].first);
-
-    CMatrix outputLayer = network.processInput(testData[0].first);
-    CMatrix knownMatrix = createCMatrix(1, 10);
-    knownMatrix.elements[testData[0].second] = 1;
-    CMatrix error = computeLossMatrix_cuda(outputLayer, knownMatrix);
-
-    std::cout << "Known Matrix\n";
-    printCMatrix(knownMatrix);
-    std::cout << "\n";
-
-    std::cout << "Predicted\n";
-    printCMatrix(outputLayer);
-    std::cout << "\n";
-
-    std::cout << "Squared Diff(Error)\n";
-    printCMatrix(error);
-    std::cout << "\n";
-
-    return 0;
+    try {
+        network.stochasticGradDescent(trainData, epochs, batchSize, learningRate, testData);
+    } catch (const std::bad_function_call e){
+        cudaError_t err = cudaGetLastError();
+        std::cout << "CUDA error: " << cudaGetErrorString(err) << "\n\n";
+        std::cout << e.what() << "\n\n";
+    }
+    //CudaVNonCuda();
 }
 
 //This function is to test various functions. 

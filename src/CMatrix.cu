@@ -74,15 +74,6 @@ __global__ void transposeWithCuda(CMatrix A, CMatrix B) {
 	B.elements[col * B.width + row] = A.elements[row * A.width + col];
 }
 
-//sigmoid'(A)=B
-__global__ void sigPrimeWithCuda(CMatrix A, CMatrix B) {
-	int row = blockIdx.y * blockDim.y + threadIdx.y;
-	int col = blockIdx.x * blockDim.x + threadIdx.x;
-	double sigmoid = 1 / (1 + exp(-(A.elements[row * A.width + col])));
-	double res = sigmoid * (1 - sigmoid);
-	B.elements[row * B.width + col] = res;
-}
-
 //func(x,y)=res
 void setCMatrix(std::function<double(int, int)> func, CMatrix& res) {
 	for (int i = 0; i < res.height; i++) {
@@ -449,32 +440,33 @@ CMatrix sigmoid_cuda(CMatrix mat1) {
 	return res;
 }
 
+//Need to rework this
 CMatrix sigmoid_prime_cuda(CMatrix mat1) {
 	int row = mat1.height;
 	int col = mat1.width;
 
-	CMatrix res = createCMatrix(row, col);
+	CMatrix matB = createCMatrix(row, col);
 
 	CMatrix device_matrix_A;
 	CMatrix device_matrix_B;
 
 	device_matrix_A.width = mat1.width;device_matrix_A.height = mat1.height;
-	device_matrix_B.width = res.width;device_matrix_B.height = res.height;
+	device_matrix_B.width = matB.width;device_matrix_B.height = matB.height;
 
 	size_t size_A = mat1.width * mat1.height * sizeof(double);
-	size_t size_B = res.width * res.height * sizeof(double);
+	size_t size_B = matB.width * matB.height * sizeof(double);
 
 	cudaMalloc(&device_matrix_A.elements, size_A);
 	cudaMemcpy(device_matrix_A.elements, mat1.elements, size_A, cudaMemcpyHostToDevice);
 	cudaMalloc(&device_matrix_B.elements, size_B);
-	cudaMemcpy(device_matrix_B.elements, res.elements, size_B, cudaMemcpyHostToDevice);
+	cudaMemcpy(device_matrix_B.elements, matB.elements, size_B, cudaMemcpyHostToDevice);
 
 	dim3 threadsPerBlock(col, row);
 	dim3 numBlocks(1, 1);
-	sigPrimeWithCuda <<<numBlocks, threadsPerBlock >>> (device_matrix_A, device_matrix_B);
+	sigmoidWithCuda <<<numBlocks, threadsPerBlock >>> (device_matrix_A, device_matrix_B);
 	cudaDeviceSynchronize();
 
-	cudaMemcpy(res.elements, device_matrix_B.elements, size_B, cudaMemcpyDeviceToHost);
+	cudaMemcpy(matB.elements, device_matrix_B.elements, size_B, cudaMemcpyDeviceToHost);
 	cudaFree(device_matrix_A.elements);
 	cudaFree(device_matrix_B.elements);
 
