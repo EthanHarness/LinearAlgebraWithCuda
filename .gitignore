@@ -19,6 +19,7 @@ mono_crash.*
 data/
 MyProgram
 .vscode/
+.editorconfig
 
 *.lib
 *.obj
