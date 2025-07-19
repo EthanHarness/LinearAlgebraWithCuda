@@ -1,8 +1,8 @@
-#include "NeuralNetwork.cuh"
+#include "NeuralNetwork.h"
 
 const std::function<double(int, int)> zeroFunc = [](int x, int y) {
 	return 0;
-};
+	};
 
 //takes in an array of ints and the size of the array
 //each value in the array is the size of the corresponding hidden layer
@@ -18,11 +18,11 @@ NeuralNetwork::NeuralNetwork(int layers[], int size) {
 	std::function<double(int, int)> randomNumberGeneratorFunction;
 	randomNumberGeneratorFunction = [generator, distribution](int x, int y) mutable {
 		return distribution(generator);
-	};
+		};
 
 
 	for (int i = 1; i < size; i++) {
-		CMatrix weights = createCMatrix(layers[i], layers[i-1]);
+		CMatrix weights = createCMatrix(layers[i], layers[i - 1]);
 		CMatrix bias = createCMatrix(layers[i], 1);
 		setCMatrix(randomNumberGeneratorFunction, weights);
 		setCMatrix(randomNumberGeneratorFunction, bias);
@@ -44,19 +44,19 @@ CMatrix NeuralNetwork::processInput(CMatrix inputNodes) {
 		res = add_cuda(multiply_cuda(weightsArray[i], res), biasArray[i]);
 
 		switch (activationFunctions[i]) {
-			case ActivationFunctionE::Sigmoid:
-				res = sigmoid_cuda(res);
-				break;
-			case ActivationFunctionE::Tanh:
-				res = tanh_cuda(res);
-				break;
-			case ActivationFunctionE::Relu:
-				res = relu_cuda(res);
-				break;
-			case ActivationFunctionE::Unknown:
-				throw std::invalid_argument("Unknown activation function found at activationFunctions " + std::to_string(i));
-			default:
-				throw std::invalid_argument("Unknown activation function found at activationFunctions " + std::to_string(i));
+		case ActivationFunctionE::Sigmoid:
+			res = sigmoid_cuda(res);
+			break;
+		case ActivationFunctionE::Tanh:
+			res = tanh_cuda(res);
+			break;
+		case ActivationFunctionE::Relu:
+			res = relu_cuda(res);
+			break;
+		case ActivationFunctionE::Unknown:
+			throw std::invalid_argument("Unknown activation function found at activationFunctions " + std::to_string(i));
+		default:
+			throw std::invalid_argument("Unknown activation function found at activationFunctions " + std::to_string(i));
 		}
 	}
 
@@ -65,7 +65,7 @@ CMatrix NeuralNetwork::processInput(CMatrix inputNodes) {
 
 //Evaluates the accuracy of the network
 int NeuralNetwork::evaluate(std::vector<std::pair<CMatrix, int>> test_data) {
-	
+
 	std::vector<std::pair<int, int>> results;
 	int sum = 0;
 	for (auto twoTuple : test_data) {
@@ -77,7 +77,7 @@ int NeuralNetwork::evaluate(std::vector<std::pair<CMatrix, int>> test_data) {
 		int computed = twoTuple.first;
 		int realResult = twoTuple.second;
 		if (computed == realResult) sum++;
-	} 
+	}
 	return sum;
 }
 
@@ -87,17 +87,17 @@ std::pair<std::vector<CMatrix>, std::vector<CMatrix>> NeuralNetwork::backprop(CM
 	std::vector<CMatrix> nabla_w;
 	for (auto bias : biasArray) {
 		CMatrix t = createCMatrix(bias.height, bias.width);
-		setCMatrix(zeroFunc, t); 
+		setCMatrix(zeroFunc, t);
 		nabla_b.push_back(t);
 	}
 	for (auto weights : weightsArray) {
 		CMatrix t = createCMatrix(weights.height, weights.width);
-		setCMatrix(zeroFunc, t); 
+		setCMatrix(zeroFunc, t);
 		nabla_w.push_back(t);
 	}
 
-	CMatrix currentLayerActivation = networkInput; 
-	std::vector<CMatrix> computedLayerFinalResult{networkInput}; //Also contains first layer
+	CMatrix currentLayerActivation = networkInput;
+	std::vector<CMatrix> computedLayerFinalResult{ networkInput }; //Also contains first layer
 	std::vector<CMatrix> computedLayerIntermediateResult;
 	for (int i = 0; i < biasArray.size(); i++) {
 		if (biasArray[i].height != weightsArray[i].height) {
@@ -106,16 +106,16 @@ std::pair<std::vector<CMatrix>, std::vector<CMatrix>> NeuralNetwork::backprop(CM
 			std::string errorMsg = oss.str();
 			throw std::runtime_error(errorMsg);
 		}
-		
+
 		CMatrix intermediate = add_cuda(multiply_cuda(weightsArray[i], currentLayerActivation), biasArray[i]);
 		computedLayerIntermediateResult.push_back(intermediate);
 		currentLayerActivation = sigmoid_cuda(intermediate);
 		computedLayerFinalResult.push_back(currentLayerActivation);
 	}
 
-	CMatrix delta = multiply_cuda(sadd_cuda(computedLayerFinalResult.back(), (expectedInputsOutput*-1)), sigmoid_prime_cuda(computedLayerIntermediateResult.back()));
+	CMatrix delta = multiply_cuda(sadd_cuda(computedLayerFinalResult.back(), (expectedInputsOutput * -1)), sigmoid_prime_cuda(computedLayerIntermediateResult.back()));
 	nabla_b.back() = delta;
-	nabla_w.back() = multiply_cuda(delta, transpose_cuda(computedLayerFinalResult[computedLayerFinalResult.size()-2]));
+	nabla_w.back() = multiply_cuda(delta, transpose_cuda(computedLayerFinalResult[computedLayerFinalResult.size() - 2]));
 	return std::pair<std::vector<CMatrix>, std::vector<CMatrix>>{nabla_b, nabla_w};
 }
 
@@ -125,13 +125,13 @@ void NeuralNetwork::updateMiniBatch(std::vector<std::pair<CMatrix, int>> miniBat
 	std::vector<CMatrix> nabla_b;
 	for (auto bias : biasArray) {
 		CMatrix t = createCMatrix(bias.height, bias.width);
-		setCMatrix(zeroFunc, t); 
+		setCMatrix(zeroFunc, t);
 		nabla_b.push_back(t);
 	}
 	std::vector<CMatrix> nabla_w;
 	for (auto weights : weightsArray) {
 		CMatrix t = createCMatrix(weights.height, weights.width);
-		setCMatrix(zeroFunc, t); 
+		setCMatrix(zeroFunc, t);
 		nabla_w.push_back(t);
 	}
 
@@ -142,9 +142,9 @@ void NeuralNetwork::updateMiniBatch(std::vector<std::pair<CMatrix, int>> miniBat
 		std::vector<CMatrix> delta_nabla_b = output.first;
 		std::vector<CMatrix> delta_nabla_w = output.second;
 
-		if (nabla_b.front().height != delta_nabla_b.front().height || nabla_b.front().width != delta_nabla_b.front().width || 
+		if (nabla_b.front().height != delta_nabla_b.front().height || nabla_b.front().width != delta_nabla_b.front().width ||
 			nabla_w.front().height != delta_nabla_w.front().height || nabla_w.front().width != delta_nabla_w.front().width)
-				throw std::runtime_error("Somehow someway one of the delta arrays is not equivalent to its corresponding nabla array");
+			throw std::runtime_error("Somehow someway one of the delta arrays is not equivalent to its corresponding nabla array");
 
 		for (int i = 0; i < nabla_b.size(); i++) {
 			CMatrix t = add_cuda(nabla_b[i], delta_nabla_b[i]);
@@ -156,11 +156,11 @@ void NeuralNetwork::updateMiniBatch(std::vector<std::pair<CMatrix, int>> miniBat
 		}
 	}
 
-	if (nabla_b.front().height != biasArray.front().height || nabla_b.front().width != biasArray.front().width || 
-			nabla_w.front().height != weightsArray.front().height || nabla_w.front().width != weightsArray.front().width)
-			throw std::runtime_error("Somehow someway one of the nabla arrays is not equivalent to its corresponding original array");
+	if (nabla_b.front().height != biasArray.front().height || nabla_b.front().width != biasArray.front().width ||
+		nabla_w.front().height != weightsArray.front().height || nabla_w.front().width != weightsArray.front().width)
+		throw std::runtime_error("Somehow someway one of the nabla arrays is not equivalent to its corresponding original array");
 
-	const double scalar = learningRate/miniBatch.size();
+	const double scalar = learningRate / miniBatch.size();
 	for (int i = 0; i < weightsArray.size(); i++) {
 		weightsArray[i] = subtract_cuda(weightsArray[i], smultiply_cuda(nabla_w[i], scalar));
 	}
@@ -175,13 +175,13 @@ void NeuralNetwork::stochasticGradDescent(std::vector<std::pair<CMatrix, int>> t
 	std::mt19937 g(rd());
 
 	int n = trainingData.size();
-	for(int j = 0; j < epochs; j++) {
+	for (int j = 0; j < epochs; j++) {
 
 		std::shuffle(trainingData.begin(), trainingData.end(), g);
-		
+
 		std::vector<std::vector<std::pair<CMatrix, int>>> miniBatches;
-		for(int k = 0; k < n; k += miniBatchSize) {
-			int end = std::min(k+miniBatchSize, n);
+		for (int k = 0; k < n; k += miniBatchSize) {
+			int end = std::min(k + miniBatchSize, n);
 			std::vector<std::pair<CMatrix, int>> miniBatch(trainingData.begin() + k, trainingData.begin() + end);
 			miniBatches.push_back(miniBatch);
 		}
@@ -197,8 +197,8 @@ void NeuralNetwork::stochasticGradDescent(std::vector<std::pair<CMatrix, int>> t
 //Converts a string of our activation function to an enum ActivationFunctionE 
 //Probably could refactor this to be more efficient
 ActivationFunctionE NeuralNetwork::stringToActivationFunction(const std::string& str) {
-    if (str == "sigmoid") return ActivationFunctionE::Sigmoid;
-    if (str == "tanh") return ActivationFunctionE::Tanh;
-    if (str == "relu") return ActivationFunctionE::Relu;
-    return ActivationFunctionE::Unknown;
+	if (str == "sigmoid") return ActivationFunctionE::Sigmoid;
+	if (str == "tanh") return ActivationFunctionE::Tanh;
+	if (str == "relu") return ActivationFunctionE::Relu;
+	return ActivationFunctionE::Unknown;
 }

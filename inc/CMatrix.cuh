@@ -5,6 +5,7 @@
 #include <iostream>
 #include <stdio.h>
 #include <functional>
+#include <ExceptionWithDetails.h>
 
 typedef struct {
     int width;

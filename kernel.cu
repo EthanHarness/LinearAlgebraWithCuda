@@ -1,4 +1,4 @@
-﻿#include "NeuralNetwork.cuh"
+﻿#include "NeuralNetwork.h"
 #include "CMatrix.cuh"
 #include <iostream>
 #include <fstream>
@@ -36,13 +36,7 @@ int main() {
     const double learningRate = .05;
     int networkStructure[] = {layer1, layer2, layer3};
     NeuralNetwork network = NeuralNetwork(networkStructure, 3);
-    try {
-        network.stochasticGradDescent(trainData, epochs, batchSize, learningRate, testData);
-    } catch (const std::bad_function_call e){
-        cudaError_t err = cudaGetLastError();
-        std::cout << "CUDA error: " << cudaGetErrorString(err) << "\n\n";
-        std::cout << e.what() << "\n\n";
-    }
+    network.stochasticGradDescent(trainData, epochs, batchSize, learningRate, testData);
     //CudaVNonCuda();
 }
 
