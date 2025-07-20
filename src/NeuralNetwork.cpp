@@ -197,7 +197,8 @@ void NeuralNetwork::stochasticGradDescent(std::vector<std::pair<CMatrix, int>> t
 		int count = 0;
 		for (auto batch : miniBatches) {
 			updateMiniBatch(batch, learningRate);
-			std::cout << "Mini batch " << count << " of " << miniBatches.size() << " completed\n";
+			std::cout << "Mini batch " << count << " of " << miniBatches.size() - 1 << " completed\n";
+			count++;
 		}
 
 		std::cout << "Epoch " << j << ": " << evaluate(testData) << " / " << testData.size() << "\n";
