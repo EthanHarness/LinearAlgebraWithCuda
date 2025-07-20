@@ -6,6 +6,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <sstream>
+#include <ExceptionWithDetails.h>
 
 enum class ActivationFunctionE {
     Sigmoid,

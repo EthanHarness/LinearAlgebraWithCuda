@@ -104,7 +104,7 @@ std::pair<std::vector<CMatrix>, std::vector<CMatrix>> NeuralNetwork::backprop(CM
 			std::ostringstream oss;
 			oss << "Somehow someway the bias array in layer " << i << " does not match the weights array";
 			std::string errorMsg = oss.str();
-			throw std::runtime_error(errorMsg);
+			throw_line(errorMsg);
 		}
 
 		CMatrix intermediate = add_cuda(multiply_cuda(weightsArray[i], currentLayerActivation), biasArray[i]);
@@ -113,9 +113,17 @@ std::pair<std::vector<CMatrix>, std::vector<CMatrix>> NeuralNetwork::backprop(CM
 		computedLayerFinalResult.push_back(currentLayerActivation);
 	}
 
-	CMatrix delta = multiply_cuda(sadd_cuda(computedLayerFinalResult.back(), (expectedInputsOutput * -1)), sigmoid_prime_cuda(computedLayerIntermediateResult.back()));
+	CMatrix delta = emultiply_cuda(sadd_cuda(computedLayerFinalResult.back(), (expectedInputsOutput * -1)), sigmoid_prime_cuda(computedLayerIntermediateResult.back()));
 	nabla_b.back() = delta;
 	nabla_w.back() = multiply_cuda(delta, transpose_cuda(computedLayerFinalResult[computedLayerFinalResult.size() - 2]));
+
+	for (int j = 2; j < networkSize + 1;j++) {
+		CMatrix intermediate = computedLayerIntermediateResult[computedLayerIntermediateResult.size() - j];
+		CMatrix sigPrime = sigmoid_prime_cuda(intermediate);
+		delta = emultiply_cuda(multiply_cuda(transpose_cuda(weightsArray[weightsArray.size() - j + 1]), delta), sigPrime);
+		nabla_b[nabla_b.size() - j] = delta;
+		nabla_w[nabla_w.size() - j] = multiply_cuda(delta, transpose_cuda(computedLayerFinalResult[computedLayerFinalResult.size() - j - 1]));
+	}
 	return std::pair<std::vector<CMatrix>, std::vector<CMatrix>>{nabla_b, nabla_w};
 }
 
@@ -186,8 +194,10 @@ void NeuralNetwork::stochasticGradDescent(std::vector<std::pair<CMatrix, int>> t
 			miniBatches.push_back(miniBatch);
 		}
 
+		int count = 0;
 		for (auto batch : miniBatches) {
 			updateMiniBatch(batch, learningRate);
+			std::cout << "Mini batch " << count << " of " << miniBatches.size() << " completed\n";
 		}
 
 		std::cout << "Epoch " << j << ": " << evaluate(testData) << " / " << testData.size() << "\n";

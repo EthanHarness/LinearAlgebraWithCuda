@@ -25,6 +25,7 @@ int getArgmax(CMatrix);
 void freeCMatrix(CMatrix &matrix);
 
 CMatrix smultiply_cuda(CMatrix mat, double scalar);
+CMatrix emultiply_cuda(CMatrix mat1, CMatrix mat2);
 CMatrix sadd_cuda(CMatrix mat1, double scalar);
 CMatrix multiply_cuda(CMatrix mat1, CMatrix mat2);
 CMatrix add_cuda(CMatrix mat1, CMatrix mat2);

@@ -1,7 +1,7 @@
 GPU_ARCH = compute_80
-CUDA_PATH = /usr/local/cuda-11.4/lib64
-NVCC_PATH = /usr/local/cuda-11.4/bin/nvcc
-DEBUG_FLAG ?= 
+CUDA_PATH = /usr/local/cuda-11.5/lib64
+NVCC_PATH = /usr/local/cuda-11.5/bin/nvcc
+DEBUG_OPTIMIZATION = -O2
 #ENZYME_PATH = ../Enzyme/enzyme/.build/Enzyme/ClangEnzyme-16.so
 
 SRCDIR = ./src
@@ -28,6 +28,7 @@ MAIN_OBJ = $(OBJDIR)/kernel.o
 
 ifeq ($(DEBUG), 1)
     DEBUG_FLAG := -g
+	DEBUG_OPTIMIZATION = -O0
 else
     DEBUG_FLAG :=
 endif
@@ -39,17 +40,17 @@ all: $(EXECUTABLE)
 #clang++ -c $< -fplugin=$(ENZYME_PATH) -O2 --cuda-gpu-arch=$(GPU_ARCH) -I$(INCDIR) -o $@
 # Rule to compile .cu files into .o files
 $(OBJDIR)/%.o: $(SRCDIR)/%.cu | $(OBJDIR)
-	$(NVCC_PATH) -c $< $(DEBUG_FLAG) -O2 -arch=$(GPU_ARCH) -I$(INCDIR) -o $@
+	$(NVCC_PATH) -c $< $(DEBUG_FLAG) $(DEBUG_OPTIMIZATION) -arch=$(GPU_ARCH) -I$(INCDIR) -o $@
 
 # Rule to compile .cpp files
 $(OBJDIR)/%.o: $(SRCDIR)/%.cpp | $(OBJDIR)
-	$(NVCC_PATH) -c $< $(DEBUG_FLAG) -O2 -arch=$(GPU_ARCH) -I$(INCDIR) -o $@
+	$(NVCC_PATH) -c $< $(DEBUG_FLAG) $(DEBUG_OPTIMIZATION) -arch=$(GPU_ARCH) -I$(INCDIR) -o $@
 
 # Rule to compile with Enzyme (Taken out for now)
 #clang++ -c $< -fplugin=$(ENZYME_PATH) -O2 --cuda-gpu-arch=$(GPU_ARCH) -I$(INCDIR) -o $@
 # Rule to compile the main .cu file into an .o file
 $(MAIN_OBJ): $(MAIN_CU) | $(OBJDIR)
-	$(NVCC_PATH) -c $< $(DEBUG_FLAG) -O2 -arch=$(GPU_ARCH) -I$(INCDIR) -o $@
+	$(NVCC_PATH) -c $< $(DEBUG_FLAG) $(DEBUG_OPTIMIZATION) -arch=$(GPU_ARCH) -I$(INCDIR) -o $@
 
 # Rule to link all object files and create the final executable
 $(EXECUTABLE): $(CU_OBJECTS) $(CPP_OBJECTS) $(MAIN_OBJ)

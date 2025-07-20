@@ -28,14 +28,16 @@ int main() {
     10 neurons layer 2 with again 10x10 weights total
     Final layer holds output information. We are choosing 1 out of 10 outputs
     */
-    const int layer1 = 784;
-    const int layer2 = 10;
-    const int layer3 = 10;
+    int layer1 = testData[0].first.height;
+    const int layer2 = 16;
+    const int layer3 = 12;
+    const int layer4 = 10;
+    const int networkSize = 4;
     const int epochs = 100;
     const int batchSize = 3000;
     const double learningRate = .05;
-    int networkStructure[] = {layer1, layer2, layer3};
-    NeuralNetwork network = NeuralNetwork(networkStructure, 3);
+    int networkStructure[] = {layer1, layer2, layer3, layer4};
+    NeuralNetwork network = NeuralNetwork(networkStructure, networkSize);
     network.stochasticGradDescent(trainData, epochs, batchSize, learningRate, testData);
     //CudaVNonCuda();
 }
@@ -121,7 +123,10 @@ std::vector<std::pair<CMatrix, int>> readTestData() {
     //Need to consume the first line since its just header information
     std::getline(file, line);
 
-    while (std::getline(file, line)) {
+    const int limit = 1000;
+    int count = 0;
+    while (std::getline(file, line) && (count < limit || limit == -1)) {
+        count++;
         std::stringstream ss(line);
         std::string value;
 
@@ -162,7 +167,10 @@ std::vector<std::pair<CMatrix, int>> readTrainingData() {
     //Need to consume the first line since its just header information
     std::getline(file, line);
 
-    while (std::getline(file, line)) {
+    const int limit = 9000;
+    int count = 0;
+    while (std::getline(file, line) && (count < limit || limit == -1)) {
+        count++;
         std::stringstream ss(line);
         std::string value;
 

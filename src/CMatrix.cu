@@ -12,6 +12,13 @@ __global__ void multiplyWithCuda(CMatrix A, CMatrix B, CMatrix C) {
 	C.elements[row * C.width + col] = sum;
 };
 
+//AxB=C (element-wise multiplication)
+__global__ void emultiplyWithCuda(CMatrix A, CMatrix B, CMatrix C) {
+	int row = blockIdx.y * blockDim.y + threadIdx.y;
+	int col = blockIdx.x * blockDim.x + threadIdx.x;
+	C.elements[row * C.width + col] = A.elements[row * A.width + col] * B.elements[row * B.width + col];
+};
+
 //A*scalar=B
 __global__ void smultiplyWithCuda(CMatrix A, CMatrix B, double scalar) {
 	int row = blockIdx.y * blockDim.y + threadIdx.y;
@@ -254,6 +261,51 @@ CMatrix multiply_cuda(CMatrix mat1, CMatrix mat2) {
 	return res;
 };
 
+//Helper function to multiply two matricies together
+//Mainly handles allocated memory and calling CUDA kernels
+CMatrix emultiply_cuda(CMatrix mat1, CMatrix mat2) {
+	int row1 = mat1.height;
+	int row2 = mat2.height;
+	int col1 = mat1.width;
+	int col2 = mat2.width;
+
+	if (col1 != col2 || row1 != row2)
+		throw_line("Columns/rows of matrix 1 do not equal the columns/rows of matrix 2.");
+
+	CMatrix res = createCMatrix(row1, col2);
+
+	CMatrix device_matrix_A;
+	CMatrix device_matrix_B;
+	CMatrix device_matrix_C;
+
+	device_matrix_A.width = mat1.width;device_matrix_A.height = mat1.height;
+	device_matrix_B.width = mat2.width;device_matrix_B.height = mat2.height;
+	device_matrix_C.width = res.width;device_matrix_C.height = res.height;
+
+	size_t size_A = mat1.width * mat1.height * sizeof(double);
+	size_t size_B = mat2.width * mat2.height * sizeof(double);
+	size_t size_C = res.width * res.height * sizeof(double);
+
+	cudaMalloc(&device_matrix_A.elements, size_A);
+	cudaMemcpy(device_matrix_A.elements, mat1.elements, size_A, cudaMemcpyHostToDevice);
+	cudaMalloc(&device_matrix_B.elements, size_B);
+	cudaMemcpy(device_matrix_B.elements, mat2.elements, size_B, cudaMemcpyHostToDevice);
+	cudaMalloc(&device_matrix_C.elements, size_C);
+	cudaMemcpy(device_matrix_C.elements, res.elements, size_C, cudaMemcpyHostToDevice);
+
+	dim3 threadsPerBlock(col2, row1);
+	dim3 numBlocks(1, 1);
+	emultiplyWithCuda <<<numBlocks, threadsPerBlock >>> (device_matrix_A, device_matrix_B, device_matrix_C);
+	cudaDeviceSynchronize();
+
+	cudaMemcpy(res.elements, device_matrix_C.elements, size_C, cudaMemcpyDeviceToHost);
+	cudaFree(device_matrix_A.elements);
+	cudaFree(device_matrix_B.elements);
+	cudaFree(device_matrix_C.elements); 
+	
+	return res;
+};
+
 //Helper function to multiply a matrix by a scalar
 CMatrix smultiply_cuda(CMatrix mat, double scalar) {
 	int rows = mat.height;
@@ -440,37 +492,10 @@ CMatrix sigmoid_cuda(CMatrix mat1) {
 	return res;
 }
 
-//Need to rework this
 CMatrix sigmoid_prime_cuda(CMatrix mat1) {
-	int row = mat1.height;
-	int col = mat1.width;
-
-	CMatrix res = createCMatrix(row, col);
-
-	CMatrix device_matrix_A;
-	CMatrix device_matrix_B;
-
-	device_matrix_A.width = mat1.width;device_matrix_A.height = mat1.height;
-	device_matrix_B.width = res.width;device_matrix_B.height = res.height;
-
-	size_t size_A = mat1.width * mat1.height * sizeof(double);
-	size_t size_B = res.width * res.height * sizeof(double);
-
-	cudaMalloc(&device_matrix_A.elements, size_A);
-	cudaMemcpy(device_matrix_A.elements, mat1.elements, size_A, cudaMemcpyHostToDevice);
-	cudaMalloc(&device_matrix_B.elements, size_B);
-	cudaMemcpy(device_matrix_B.elements, res.elements, size_B, cudaMemcpyHostToDevice);
-
-	dim3 threadsPerBlock(col, row);
-	dim3 numBlocks(1, 1);
-	sigmoidWithCuda <<<numBlocks, threadsPerBlock >>> (device_matrix_A, device_matrix_B);
-	cudaDeviceSynchronize();
-
-	cudaMemcpy(res.elements, device_matrix_B.elements, size_B, cudaMemcpyDeviceToHost);
-	cudaFree(device_matrix_A.elements);
-	cudaFree(device_matrix_B.elements);
-
-	return res;
+	CMatrix temp1 = sigmoid_cuda(mat1);
+	CMatrix temp2 = sadd_cuda(smultiply_cuda(temp1, -1), 1);
+	return emultiply_cuda(temp1, temp2);
 }
 
 //Helper function to relu a mat
