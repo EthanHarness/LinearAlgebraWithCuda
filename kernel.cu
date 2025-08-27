@@ -12,13 +12,13 @@
 
 void helperFunction(NeuralNetwork network, CMatrix inputNodes);
 void CudaVNonCuda();
-std::vector<std::pair<CMatrix, int>> readTestData();
-std::vector<std::pair<CMatrix, int>> readTrainingData();
+std::vector<std::pair<CMatrix, CMatrix>> readTestData();
+std::vector<std::pair<CMatrix, CMatrix>> readTrainingData();
 
 int main() {
     //Takes in mnist training sets
-    std::vector<std::pair<CMatrix, int>> testData = readTestData();
-    std::vector<std::pair<CMatrix, int>> trainData = readTrainingData();
+    std::vector<std::pair<CMatrix, CMatrix>> testData = readTestData();
+    std::vector<std::pair<CMatrix, CMatrix>> trainData = readTrainingData();
     std::cout << "Train Data samples: " << trainData.size() << "\n";
     std::cout << "Test Data samples: " << testData.size() << "\n";
 
@@ -34,7 +34,7 @@ int main() {
     const int layer4 = 10;
     const int networkSize = 4;
     const int epochs = 100;
-    const int batchSize = 3000;
+    const int batchSize = 2500;
     const double learningRate = .05;
     int networkStructure[] = {layer1, layer2, layer3, layer4};
     NeuralNetwork network = NeuralNetwork(networkStructure, networkSize);
@@ -110,7 +110,7 @@ void CudaVNonCuda() {
 }
 
 //Reads in test data for our NN to store
-std::vector<std::pair<CMatrix, int>> readTestData() {
+std::vector<std::pair<CMatrix, CMatrix>> readTestData() {
     std::ifstream file("data/mnist_test.csv");
 
     if (!file.is_open()) {
@@ -118,7 +118,61 @@ std::vector<std::pair<CMatrix, int>> readTestData() {
     }
 
     std::string line;
-    std::vector<std::pair<CMatrix, int>> testData;
+    std::vector<std::pair<CMatrix, CMatrix>> testData;
+    
+    //Need to consume the first line since its just header information
+    std::getline(file, line);
+
+    const int limit = 10000;
+    int count = 0;
+    while (std::getline(file, line) && (count < limit || limit == -1)) {
+        count++;
+        std::stringstream ss(line);
+        std::string value;
+
+        std::vector<int> row;
+        while (std::getline(ss, value, ',')) {
+            int intValue = std::stoi(value);
+            row.push_back(intValue);
+        }
+
+        int firstValue = row[0];
+        std::function<double(int, int)> firstValueFunc;
+        firstValueFunc = [firstValue](int x, int y) {
+            if (x == firstValue) {
+                return 1.0;
+            }
+            return 0.0;
+        };
+        CMatrix expectedOutput = createCMatrix(10, 1);
+        setCMatrix(firstValueFunc, expectedOutput);
+
+        CMatrix testingDataCMatrix = createCMatrix(row.size()-1, 1);
+        row.erase(row.begin());
+        
+        std::function<double(int, int)> foo;
+        foo = [row](int x, int y) {
+            return (double)(row[x]/255.0);
+        };
+        setCMatrix(foo, testingDataCMatrix);
+
+        testData.push_back(std::make_pair(testingDataCMatrix, expectedOutput));
+    }
+
+    file.close();
+    return testData;
+}
+
+//Reads in training data for our NN to store
+std::vector<std::pair<CMatrix, CMatrix>> readTrainingData() {
+    std::ifstream file("data/mnist_train.csv");
+
+    if (!file.is_open()) {
+        throw std::runtime_error("Error: File could not be opened.");
+    }
+
+    std::string line;
+    std::vector<std::pair<CMatrix, CMatrix>> testData;
     
     //Need to consume the first line since its just header information
     std::getline(file, line);
@@ -137,60 +191,26 @@ std::vector<std::pair<CMatrix, int>> readTestData() {
         }
 
         int firstValue = row[0];
-        CMatrix testingDataCMatrix = createCMatrix(row.size()-1, 1);
-        row.erase(row.begin());
-        
-        std::function<double(int, int)> foo;
-        foo = [row](int x, int y) {
-            return (double)(row[y]);
+        std::function<double(int, int)> firstValueFunc;
+        firstValueFunc = [firstValue](int x, int y) {
+            if (x == firstValue) {
+                return 1.0;
+            }
+            return 0.0;
         };
-        setCMatrix(foo, testingDataCMatrix);
+        CMatrix expectedOutput = createCMatrix(10, 1);
+        setCMatrix(firstValueFunc, expectedOutput);
 
-        testData.push_back(std::make_pair(testingDataCMatrix, firstValue));
-    }
-
-    file.close();
-    return testData;
-}
-
-//Reads in training data for our NN to store
-std::vector<std::pair<CMatrix, int>> readTrainingData() {
-    std::ifstream file("data/mnist_train.csv");
-
-    if (!file.is_open()) {
-        throw std::runtime_error("Error: File could not be opened.");
-    }
-
-    std::string line;
-    std::vector<std::pair<CMatrix, int>> testData;
-    
-    //Need to consume the first line since its just header information
-    std::getline(file, line);
-
-    const int limit = 9000;
-    int count = 0;
-    while (std::getline(file, line) && (count < limit || limit == -1)) {
-        count++;
-        std::stringstream ss(line);
-        std::string value;
-
-        std::vector<int> row;
-        while (std::getline(ss, value, ',')) {
-            int intValue = std::stoi(value);
-            row.push_back(intValue);
-        }
-
-        int firstValue = row[0];
         CMatrix testingDataCMatrix = createCMatrix(row.size()-1, 1);
         row.erase(row.begin());
 
         std::function<double(int, int)> foo;
         foo = [row](int x, int y) {
-            return (double)(row[y]);
+            return (double)(row[x]/255.0);
         };
         setCMatrix(foo, testingDataCMatrix);
 
-        testData.push_back(std::make_pair(testingDataCMatrix, firstValue));
+        testData.push_back(std::make_pair(testingDataCMatrix, expectedOutput));
     }
 
     file.close();
