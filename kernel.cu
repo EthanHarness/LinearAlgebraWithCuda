@@ -34,7 +34,7 @@ int main() {
     const int layer4 = 10;
     const int networkSize = 4;
     const int epochs = 100;
-    const int batchSize = 2500;
+    const int batchSize = 32;
     const double learningRate = .05;
     int networkStructure[] = {layer1, layer2, layer3, layer4};
     NeuralNetwork network = NeuralNetwork(networkStructure, networkSize);
@@ -123,17 +123,17 @@ std::vector<std::pair<CMatrix, CMatrix>> readTestData() {
     //Need to consume the first line since its just header information
     std::getline(file, line);
 
-    const int limit = 10000;
+    const int limit = 100;
     int count = 0;
     while (std::getline(file, line) && (count < limit || limit == -1)) {
         count++;
         std::stringstream ss(line);
         std::string value;
 
-        std::vector<int> row;
+        std::vector<double> row;
         while (std::getline(ss, value, ',')) {
-            int intValue = std::stoi(value);
-            row.push_back(intValue);
+            double dValue = std::stod(value);
+            row.push_back(dValue);
         }
 
         int firstValue = row[0];
@@ -152,7 +152,7 @@ std::vector<std::pair<CMatrix, CMatrix>> readTestData() {
         
         std::function<double(int, int)> foo;
         foo = [row](int x, int y) {
-            return (double)(row[x]/255.0);
+            return (row[x]/255.0);
         };
         setCMatrix(foo, testingDataCMatrix);
 
@@ -184,10 +184,10 @@ std::vector<std::pair<CMatrix, CMatrix>> readTrainingData() {
         std::stringstream ss(line);
         std::string value;
 
-        std::vector<int> row;
+        std::vector<double> row;
         while (std::getline(ss, value, ',')) {
-            int intValue = std::stoi(value);
-            row.push_back(intValue);
+            double dValue = std::stod(value);
+            row.push_back(dValue);
         }
 
         int firstValue = row[0];
@@ -206,7 +206,7 @@ std::vector<std::pair<CMatrix, CMatrix>> readTrainingData() {
 
         std::function<double(int, int)> foo;
         foo = [row](int x, int y) {
-            return (double)(row[x]/255.0);
+            return (row[x]/255.0);
         };
         setCMatrix(foo, testingDataCMatrix);
 

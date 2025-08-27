@@ -8,12 +8,11 @@ const std::function<double(int, int)> zeroFunc = [](int x, int y) {
 //each value in the array is the size of the corresponding hidden layer
 //first value is the size of the input layer. We will not be setting anything for the first layer since its the input. 
 NeuralNetwork::NeuralNetwork(int layers[], int size) {
-	const double variance = 1;
 	const double mean = 0;
 	const ActivationFunctionE temporaryActivationFunctionConstant = ActivationFunctionE::Sigmoid;
 	auto seed = std::chrono::system_clock::now().time_since_epoch().count();
 	std::default_random_engine generator(seed);
-	std::normal_distribution<double> distribution(mean, variance);
+	std::normal_distribution<double> distribution;
 
 	std::function<double(int, int)> randomNumberGeneratorFunction;
 	randomNumberGeneratorFunction = [generator, distribution](int x, int y) mutable {
@@ -22,6 +21,8 @@ NeuralNetwork::NeuralNetwork(int layers[], int size) {
 
 
 	for (int i = 1; i < size; i++) {
+		double variance = sqrt(1.0 / layers[i]);
+		distribution = std::normal_distribution<double>(mean, variance);
 		CMatrix weights = createCMatrix(layers[i], layers[i - 1]);
 		CMatrix bias = createCMatrix(layers[i], 1);
 		setCMatrix(randomNumberGeneratorFunction, weights);
@@ -109,48 +110,18 @@ std::pair<std::vector<CMatrix>, std::vector<CMatrix>> NeuralNetwork::backprop(CM
 		computedLayerFinalResult.push_back(currentLayerActivation);
 	}
 
-	// for(auto inter : computedLayerIntermediateResult) {
-	// 	printCMatrix(inter);
-	// }
-
 	CMatrix delta = subtract_cuda(computedLayerFinalResult.back(), expectedInputsOutput);
 	nabla_b.back() = delta;
 	nabla_w.back() = multiply_cuda(delta, transpose_cuda(computedLayerFinalResult[computedLayerFinalResult.size() - 2]));
 
-	for (int j = 2; j < networkSize + 1;j++) {
-		CMatrix intermediate = computedLayerIntermediateResult[computedLayerIntermediateResult.size() - j];
-		CMatrix sigPrime = sigmoid_prime_cuda(intermediate);
-		delta = emultiply_cuda(multiply_cuda(transpose_cuda(weightsArray[weightsArray.size() - j + 1]), delta), sigPrime);
-		nabla_b[nabla_b.size() - j] = delta;
-		nabla_w[nabla_w.size() - j] = multiply_cuda(delta, transpose_cuda(computedLayerFinalResult[computedLayerFinalResult.size() - j - 1]));
+	for (int l = networkSize - 2; l >= 0; l--) {
+		CMatrix sp = sigmoid_prime_cuda(computedLayerIntermediateResult[l]);
+		CMatrix temp = multiply_cuda(transpose_cuda(weightsArray[l + 1]), delta);
+		delta = emultiply_cuda(temp, sp);
 
-		if (j == networkSize) {
-			printCMatrix(intermediate);
-			printCMatrix(delta);
-			printCMatrix(nabla_b[nabla_b.size() - j]);
-			printCMatrix(transpose_cuda(computedLayerFinalResult[computedLayerFinalResult.size() - j - 1]));
-			printCMatrix(multiply_cuda(delta, transpose_cuda(computedLayerFinalResult[computedLayerFinalResult.size() - j - 1])));
-			printCMatrix(nabla_w[nabla_w.size() - j]);
-			std::exit(1);
-		}
-
-		// if (j == networkSize) {
-		// 	printCMatrix(intermediate);
-		// 	printCMatrix(reluPrime);
-		// 	printCMatrix(delta);
-		// 	printCMatrix(nabla_w[nabla_w.size() - j]);
-		// 	std::exit(1);	
-		// }
-
+		nabla_b[l] = delta;
+		nabla_w[l] = multiply_cuda(delta, transpose_cuda(computedLayerFinalResult[l]));
 	}
-	
-	// for(int i = 0; i < nabla_b.size(); i++) {
-	// 	printCMatrix(nabla_b[i]);
-	// }
-	// for(int i = 0; i < nabla_w.size(); i++) {
-	// 	printCMatrix(nabla_w[i]);
-	// }
-	// std::exit(1);
 
 	return std::pair<std::vector<CMatrix>, std::vector<CMatrix>>{nabla_b, nabla_w};
 }
@@ -225,11 +196,11 @@ void NeuralNetwork::stochasticGradDescent(std::vector<std::pair<CMatrix, CMatrix
 		int count = 0;
 		for (auto batch : miniBatches) {
 			updateMiniBatch(batch, learningRate);
-			std::cout << "Mini batch " << count << " of " << miniBatches.size() - 1 << " completed\n";
+			std::cout << "Mini batch " << count+1 << " of " << miniBatches.size() << " completed\n";
 			count++;
 		}
 
-		std::cout << "Epoch " << j << ": " << evaluate(testData) << " / " << testData.size() << "\n";
+		std::cout << "Epoch " << j+1 << ": " << evaluate(testData) << " / " << testData.size() << "\n";
 	}
 }
 

@@ -4,12 +4,13 @@
 __global__ void multiplyWithCuda(CMatrix A, CMatrix B, CMatrix C) {
 	int row = blockIdx.y * blockDim.y + threadIdx.y;
 	int col = blockIdx.x * blockDim.x + threadIdx.x;
-	double sum = 0;
 
-	for (int i = 0; i < A.width; i++) {
-		sum += A.elements[row * A.width + i] * B.elements[i * B.width + col];
+	if (row < A.height && col < B.width) {
+		double sum = 0;
+		for (int i = 0; i < A.width; i++)
+			sum += A.elements[row * A.width + i] * B.elements[i * B.width + col];
+		C.elements[row * C.width + col] = sum;
 	}
-	C.elements[row * C.width + col] = sum;
 };
 
 //AxB=C (element-wise multiplication)
@@ -248,8 +249,8 @@ CMatrix multiply_cuda(CMatrix mat1, CMatrix mat2) {
 	cudaMalloc(&device_matrix_C.elements, size_C);
 	cudaMemcpy(device_matrix_C.elements, res.elements, size_C, cudaMemcpyHostToDevice);
 
-	dim3 threadsPerBlock(col2, row1);
-	dim3 numBlocks(1, 1);
+	dim3 threadsPerBlock(16, 16);
+	dim3 numBlocks((col2 + 15)/16, (row1 + 15)/16);
 	multiplyWithCuda <<<numBlocks, threadsPerBlock >>> (device_matrix_A, device_matrix_B, device_matrix_C);
 	cudaDeviceSynchronize();
 
